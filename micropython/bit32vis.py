@@ -20,24 +20,15 @@ MONOCHROME = "monochrome"
 STYLES = (STANDARD, HIGH_CONTRAST, MONOCHROME)
 
 LEFT_RIGHT = "A|"
-LEFT_RIGHT_ANTI = "A| anti"
 TOP_BOTTOM = "A-"
-TOP_BOTTOM_ANTI = "A- anti"
 HALF_TURN = "A+"
-HALF_TURN_ANTI = "A+ anti"
 DIAGONAL_SLASH = "A/"
-DIAGONAL_BACKSLASH = "A\\"
 MODES = (
     LEFT_RIGHT,
-    LEFT_RIGHT_ANTI,
     TOP_BOTTOM,
-    TOP_BOTTOM_ANTI,
     HALF_TURN,
-    HALF_TURN_ANTI,
     DIAGONAL_SLASH,
-    DIAGONAL_BACKSLASH,
 )
-ANTI_MODES = (LEFT_RIGHT_ANTI, TOP_BOTTOM_ANTI, HALF_TURN_ANTI)
 
 BASE_L_MIN = 0.5
 BASE_L_MAX = 0.7
@@ -85,15 +76,6 @@ DIAGONAL_SLASH_TEMPLATE = (
     "T R' O' K' F'",
     "U V W X Y",
 )
-DIAGONAL_BACKSLASH_TEMPLATE = (
-    "A B C D E",
-    "F G H I J",
-    "G' K L M N",
-    "H' L' O P Q",
-    "I' M' P' R S",
-    "J' N' Q' S' T",
-    "U V W X Y",
-)
 
 
 def _create_edges():
@@ -120,7 +102,7 @@ def _create_mode_definition(mode, template_rows):
             token = template[row][column]
             copied = token.endswith("'")
             name = token[:-1] if copied else token
-            reference_row.append((name, copied))
+            reference_row.append(name)
             if not copied:
                 source_positions[name] = row * COLUMNS + column
         references.append(tuple(reference_row))
@@ -130,13 +112,12 @@ def _create_mode_definition(mode, template_rows):
         start_row, start_column, end_row, end_column = edge
         start = references[start_row][start_column]
         end = references[end_row][end_column]
-        first = source_positions[start[0]]
-        second = source_positions[end[0]]
+        first = source_positions[start]
+        second = source_positions[end]
         if first == second:
             raise ValueError("invalid template edge in %s" % mode)
         key = (min(first, second), max(first, second))
-        classes.setdefault(key, []).append(
-            (edge_index, start[1] or end[1]))
+        classes.setdefault(key, []).append(edge_index)
 
     ordered = []
     for key in sorted(classes):
@@ -146,13 +127,9 @@ def _create_mode_definition(mode, template_rows):
 
 _MODE_DEFINITIONS = (
     _create_mode_definition(LEFT_RIGHT, LEFT_RIGHT_TEMPLATE),
-    _create_mode_definition(LEFT_RIGHT_ANTI, LEFT_RIGHT_TEMPLATE),
     _create_mode_definition(TOP_BOTTOM, TOP_BOTTOM_TEMPLATE),
-    _create_mode_definition(TOP_BOTTOM_ANTI, TOP_BOTTOM_TEMPLATE),
     _create_mode_definition(HALF_TURN, HALF_TURN_TEMPLATE),
-    _create_mode_definition(HALF_TURN_ANTI, HALF_TURN_TEMPLATE),
     _create_mode_definition(DIAGONAL_SLASH, DIAGONAL_SLASH_TEMPLATE),
-    _create_mode_definition(DIAGONAL_BACKSLASH, DIAGONAL_BACKSLASH_TEMPLATE),
 )
 
 
@@ -186,10 +163,9 @@ def free_connection_count(mode):
 
 def _expand(definition, values):
     result = bytearray(EDGE_COUNT)
-    anti = definition["mode"] in ANTI_MODES
     for index, connection_class in enumerate(definition["classes"]):
-        for edge_index, touches_copy in connection_class[1]:
-            result[edge_index] = values[index] ^ (1 if anti and touches_copy else 0)
+        for edge_index in connection_class[1]:
+            result[edge_index] = values[index]
     return result
 
 
@@ -204,26 +180,31 @@ def _encode_connections(mixed, mode_index):
     if mode_index == 0:
         return _encode_default(mixed)
     definition = _MODE_DEFINITIONS[mode_index]
-    payload = mixed & 0x1FFFFFFF
+    payload = mixed & 0x3FFFFFFF
     spread = mix32(mixed ^ ((0x6D2B79F5 * (mode_index + 1)) & MASK32))
     values = bytearray(len(definition["classes"]))
     for index in range(len(values)):
-        if index < 29:
-            values[index] = (payload >> (28 - index)) & 1
+        if index < 30:
+            values[index] = (payload >> (29 - index)) & 1
         else:
-            values[index] = (spread >> (31 - ((index - 29) & 31))) & 1
+            values[index] = (spread >> (31 - ((index - 30) & 31))) & 1
     return _expand(definition, values)
+
+
+def _preferred_mode_has_capacity(mixed, mode_index):
+    missing_bits = 30 - len(_MODE_DEFINITIONS[mode_index]["classes"])
+    if missing_bits <= 0:
+        return True
+    return (mixed & ((1 << missing_bits) - 1)) == 0
 
 
 def matches_mode(connections, mode):
     definition = _MODE_DEFINITIONS[MODES.index(mode)]
-    anti = mode in ANTI_MODES
     for connection_class in definition["classes"]:
         occurrences = connection_class[1]
-        edge_index, touches_copy = occurrences[0]
-        expected = connections[edge_index] ^ (1 if anti and touches_copy else 0)
-        for edge_index, touches_copy in occurrences[1:]:
-            actual = connections[edge_index] ^ (1 if anti and touches_copy else 0)
+        expected = connections[occurrences[0]]
+        for edge_index in occurrences[1:]:
+            actual = connections[edge_index]
             if actual != expected:
                 return False
     return True
@@ -313,9 +294,11 @@ def spec(bits, style=STANDARD):
     """Return the canonical connection visual for an unsigned 32-bit integer."""
     _validate_bits(bits)
     mixed = mix32(bits)
-    mode_index = mixed >> 29
+    mode_index = mixed >> 30
     candidate = _encode_connections(mixed, mode_index)
-    fallback = mode_index != 0 and _conflicts_with_earlier_mode(candidate, mode_index)
+    fallback = mode_index != 0 and (
+        not _preferred_mode_has_capacity(mixed, mode_index)
+        or _conflicts_with_earlier_mode(candidate, mode_index))
     actual_mode = LEFT_RIGHT if fallback else MODES[mode_index]
     connections = _encode_default(mixed) if fallback else candidate
     hue_index = (mixed >> 12) & 0xF

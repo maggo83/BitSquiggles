@@ -45,7 +45,7 @@ public final class Bit32VisTest {
             previous = key;
         }
 
-        int[] expected = {32, 32, 31, 31, 29, 29, 40, 38};
+        int[] expected = {32, 31, 29, 40};
         for (int i = 0; i < expected.length; i++) {
             check(Bit32Vis.freeConnectionCount(Bit32Vis.Mode.values()[i]) == expected[i],
                     "free connection count for " + Bit32Vis.Mode.values()[i]);
@@ -55,11 +55,21 @@ public final class Bit32VisTest {
     private static void testEveryModeAndCanonicalPriority() {
         boolean[] seenPreferred = new boolean[Bit32Vis.Mode.values().length];
         boolean sawFallback = false;
+        boolean sawHalfTurnCapacityFallback = false;
+        boolean sawAcceptedHalfTurn = false;
         for (int input = 0; input < 250_000; input++) {
             Bit32Vis.VisSpec visual = Bit32Vis.spec(input);
             int preferredIndex = visual.preferredMode().ordinal();
             seenPreferred[preferredIndex] = true;
             sawFallback |= visual.fallback();
+            if (visual.preferredMode() == Bit32Vis.Mode.HALF_TURN) {
+                if ((visual.mixed() & 1) == 1) {
+                    check(visual.fallback(), "half-turn omitted bit uses fallback");
+                    sawHalfTurnCapacityFallback = true;
+                } else if (!visual.fallback()) {
+                    sawAcceptedHalfTurn = true;
+                }
+            }
 
             check(Bit32Vis.matchesMode(visual.connections(), visual.actualMode()),
                     "visual matches actual mode");
@@ -77,7 +87,9 @@ public final class Bit32VisTest {
         for (int mode = 0; mode < seenPreferred.length; mode++) {
             check(seenPreferred[mode], "preferred mode observed: " + mode);
         }
-        check(sawFallback, "ambiguous candidate fallback observed");
+        check(sawFallback, "fallback observed");
+        check(sawHalfTurnCapacityFallback, "half-turn capacity fallback observed");
+        check(sawAcceptedHalfTurn, "injective half-turn candidate observed");
     }
 
     private static void testInputBitAvalanche() {
@@ -160,7 +172,7 @@ public final class Bit32VisTest {
         check(visual.preferredMode() == Bit32Vis.Mode.TOP_BOTTOM, "golden mode");
         check(!visual.fallback(), "golden no fallback");
         check(flatten(visual.connections()).equals(
-                "0011110101100010110000111011000011010100111111001010100110"),
+                "0001111010110001011000011101010011101100001010011011010011"),
                 "golden connections");
         check(visual.background().hex().equals("#140040"), "golden background");
         check(visual.foreground().hex().equals("#8d9200"), "golden foreground");

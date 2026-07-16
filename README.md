@@ -95,8 +95,8 @@ desaturation, quantization, or inversion.
 
 The visualization uses connections in a small cell grid and several structured
 copy families. Connections provide enough capacity to retain the full input,
-while symmetry, rotation-like structure, and anti-copy structure give the eye
-larger features to compare. Independent ternary cell states were rejected
+while reflection-like, rotation-like, and diagonal copy structures give the
+eye larger features to compare. Independent ternary cell states were rejected
 because their small subpatterns were difficult to distinguish on real
 low-resolution displays.
 

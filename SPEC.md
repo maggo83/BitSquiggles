@@ -78,10 +78,11 @@ A conforming encoder performs these conceptual stages:
 6. **Render if requested.** Place cells, bridges, and closed junctions in the
    exact binary raster.
 
-The default family has capacity for all 32 mixed bits. Non-default families
-preserve a 29-bit payload plus their preferred-family selector. Canonical
-priority makes the accepted family ranges disjoint, while fallback covers
-every rejected candidate.
+The default family has capacity for all 32 mixed bits. The two-bit selector
+leaves a 30-bit payload. Non-default families preserve that payload directly
+when they have sufficient capacity. The 29-class half-turn family accepts only
+the half of its payloads that fit and sends the others to the full-capacity
+fallback. Canonical priority makes accepted family ranges disjoint.
 
 ## Part II — Detailed implementation specification
 
@@ -150,7 +151,7 @@ For every physical edge:
 4. use the coordinate pair as the connection-class key.
 
 Sort connection classes by that key. All physical edges with one key receive
-the same free connection bit, subject to the anti-copy rule in section 7.
+the same free connection bit.
 
 #### 6.1 Left/right (`A|`)
 
@@ -209,58 +210,27 @@ U  V  W  X  Y
 Free connection classes: **40**. This is a copy template, not a geometric
 reflection of the non-square rectangle.
 
-#### 6.5 Backslash copy (`A\`)
+### 7. Preferred modes and class-bit assignment
 
-```text
-A  B  C  D  E
-F  G  H  I  J
-G' K  L  M  N
-H' L' O  P  Q
-I' M' P' R  S
-J' N' Q' S' T
-U  V  W  X  Y
-```
-
-Free connection classes: **38**. This is also a copy template rather than a
-geometric rectangle symmetry.
-
-### 7. Anti-copy rule
-
-An anti mode changes each physical occurrence according to the literal OR
-rule:
-
-```text
-touchesCopiedEndpoint = first endpoint is primed OR second endpoint is primed
-physicalBit = classBit XOR touchesCopiedEndpoint
-```
-
-Consequently:
-
-```text
-(A,  B') = NOT (A, B)
-(A', B ) = NOT (A, B)
-(A', B') = NOT (A, B)
-```
-
-The last case is inverted once, not twice. The rule is part of encoding.
-
-### 8. Preferred modes and class-bit assignment
-
-Bits `31…29` of `mixed` select one of eight preferred modes:
+Bits `31…30` of `mixed` select one of four preferred modes:
 
 | Index | Mode | Free classes |
 | ---: | --- | ---: |
-| 0 | Left/right (A-bar) | 32 |
-| 1 | Left/right anti (A-bar anti) | 32 |
-| 2 | Top/bottom (`A-`) | 31 |
-| 3 | Top/bottom anti (`A- anti`) | 31 |
-| 4 | Half-turn (`A+`) | 29 |
-| 5 | Half-turn anti (`A+ anti`) | 29 |
-| 6 | Slash copy (`A/`) | 40 |
-| 7 | Backslash copy (`A\`) | 38 |
+| 0 | Left/right (`A\|`) | 32 |
+| 1 | Top/bottom (`A-`) | 31 |
+| 2 | Half-turn (`A+`) | 29 |
+| 3 | Slash copy (`A/`) | 40 |
 
-Bits `28…0` are the 29-bit payload. For a non-default mode, assign these bits
-most significant first to the first 29 sorted connection classes.
+Bits `29…0` are the 30-bit payload. For a non-default mode with at least 30
+classes, assign these bits most significant first to the first 30 sorted
+connection classes.
+
+The half-turn family has only 29 classes and cannot injectively represent all
+$2^{30}$ payloads. If payload bit 0 is zero, assign payload bits `29…1` most
+significant first to its 29 classes. If payload bit 0 is one, do not accept the
+candidate: encode the complete mixed value in the default family and set
+`fallback` to true. The omitted bit is therefore represented by the choice
+between an eligible half-turn candidate and fallback rather than being lost.
 
 If the mode has further classes, calculate:
 
@@ -268,16 +238,16 @@ If the mode has further classes, calculate:
 spread = mix32(mixed XOR (0x6d2b79f5 × (modeIndex + 1)))
 ```
 
-Assign spread bits from most significant to least significant to the remaining
-classes. No current mode needs more than 11 spread bits. The first 29 class
-values preserve the payload exactly, making candidate construction injective
-within each preferred mode.
+Assign spread bits from most significant to least significant to classes after
+the first 30. Top/bottom uses one spread bit and slash copy uses ten. Half-turn
+uses no spread bits. Spread remains part of this experiment and is considered
+separately from the four-mode selection change.
 
 Mode 0 is different: assign all 32 bits of `mixed`, most significant first,
 directly to the 32 left/right classes. This is a bijection onto the complete
 default family and is also the fallback encoding.
 
-### 9. Family membership, canonical priority, and fallback
+### 8. Family membership, canonical priority, and fallback
 
 Mode families overlap. A family label cannot disambiguate them because it is
 not part of the visible geometry. Apply this priority rule to every candidate
@@ -293,45 +263,43 @@ An accepted candidate has `actualMode = preferredMode` and `fallback = false`.
 A rejected candidate has `actualMode = A|` and `fallback = true`. Preferred
 mode 0 directly uses `A|` and is not considered fallback.
 
-#### 9.1 Exact membership test
+Capacity fallback from section 7 is applied in addition to this overlap rule.
+
+#### 8.1 Exact membership test
 
 For a mode, let:
 
 - `class(e)` identify the connection class of physical edge `e`;
-- `copied(e)` be one when either physical endpoint is primed;
-- `anti` be one for an anti mode and zero otherwise.
 
 Expansion is:
 
 ```text
-edge[e] = classBit[class(e)] XOR (anti AND copied(e))
+edge[e] = classBit[class(e)]
 ```
 
-Normalize an arbitrary mask as:
-
-```text
-normalized[e] = edge[e] XOR (anti AND copied(e))
-```
-
-The mask belongs to that complete family if and only if all normalized
-occurrences in each connection class are equal. One representative occurrence
-can be compared with all remaining occurrences. Singleton classes impose no
-constraint. The test is exact and linear in the 58 physical edges.
+The mask belongs to that complete family if and only if all occurrences in
+each connection class are equal. One representative occurrence can be compared
+with all remaining occurrences. Singleton classes impose no constraint. The
+test is exact and linear in the 58 physical edges.
 
 It is necessary to test all earlier families, not only an adjacent or
 higher-index family: the earliest family owns every overlap in which it
 participates.
 
-#### 9.2 Uniqueness proof
+#### 8.2 Uniqueness proof
 
 Let `M` be the bijective mixer and `Fi` the complete mask family for mode `i`.
 
 1. Mode-0 and fallback outputs encode all 32 mixed bits injectively in `F0`.
 2. Every accepted non-default output is explicitly outside `F0`, so it cannot
    equal a mode-0 or fallback output.
-3. Within one non-default mode, different inputs selecting that mode have
-   different 29-bit payloads. At least one of their first 29 class bits differs.
-4. For accepted modes `i < j`, every mode-`i` output belongs to `Fi`, while
+3. Within top/bottom or slash copy, different inputs selecting that mode have
+   different 30-bit payloads, all of which are present in the first 30 classes.
+4. An accepted half-turn output has payload bit 0 equal to zero. Its remaining
+   29 payload bits are present in its 29 classes; different accepted half-turn
+   inputs therefore produce different masks. Half-turn inputs with payload bit
+   0 equal to one use the injective default fallback.
+5. For accepted modes `i < j`, every mode-`i` output belongs to `Fi`, while
    mode `j` rejects every candidate belonging to `Fi`. Their accepted outputs
    cannot coincide.
 
@@ -341,7 +309,7 @@ Because `M` is bijective, these cases establish:
 input1 != input2  =>  edgeMask1 != edgeMask2
 ```
 
-The exact raster is also injective because section 11 assigns dedicated bridge
+The exact raster is also injective because section 10 assigns dedicated bridge
 pixels from which all 58 edge bits can be recovered. Color and metadata are not
 used in either argument.
 
@@ -356,7 +324,7 @@ Intersections can then be counted by solving
 `Ai × x XOR Aj × y = bi XOR bj` over `GF(2)`. Runtime encoding does not need
 those counts; concrete membership tests are sufficient.
 
-### 10. Cell and color derivation
+### 9. Cell and color derivation
 
 After the final connection mask is known, mark both endpoints of every selected
 edge as active. All other cells are inactive.
@@ -392,7 +360,7 @@ Calculate the XOR parity of all bits in the original, unmixed input. If the
 parity is odd, swap the foreground and background lightness values. Do not swap
 hue or chroma. The returned `swapped` field reports this operation.
 
-#### 10.1 OKLCH to sRGB
+#### 9.1 OKLCH to sRGB
 
 For `(L,C,h)`, with `h` in degrees:
 
@@ -418,7 +386,7 @@ srgb(v) = 12.92 × v                            when v <= 0.0031308
 Multiply by 255 and round to the nearest integer, rounding exact half values
 upward. Text colors use lowercase `#rrggbb`.
 
-### 11. Exact binary renderer
+### 10. Exact binary renderer
 
 The normative raster is 16×22:
 
@@ -448,7 +416,7 @@ Each physical edge owns bridge pixels not owned by any other edge. Reading one
 of those bridge pixels recovers that edge bit even when connected-component
 membership alone would not reveal it.
 
-### 12. Smooth renderer
+### 11. Smooth renderer
 
 Smooth rendering is presentation rather than the binary conformance format,
 but it must preserve selected and unselected connections. Use the same 16×22
@@ -466,12 +434,12 @@ coordinate system at any scale:
 The union avoids hairline background seams between overlapping components.
 Smoothing must not close an unselected connection.
 
-### 13. Reference API mapping
+### 12. Reference API mapping
 
 The language APIs expose the same conceptual operations and values. Their
 container types and naming conventions differ.
 
-#### 13.1 Java 17
+#### 12.1 Java 17
 
 Public static operations on `Bit32Vis`:
 
@@ -488,7 +456,7 @@ are enums. Arrays held by records remain mutable Java arrays. The reference
 implementation also keeps `mix32(int)` and `matchesMode(byte[], Mode)` visible
 to its package for conformance tests; they are not part of the public Java API.
 
-#### 13.2 MicroPython-compatible Python
+#### 12.2 MicroPython-compatible Python
 
 Public module operations:
 
@@ -509,28 +477,29 @@ The visual dictionary exposes `input`, `mixed`, `connections`, `cells`,
 `fallback`, `luminance_index`, and `swapped`. The raster dictionary exposes
 `width`, `height`, `pixels`, `background`, `foreground`, and `style`.
 
-### 14. Conformance requirements
+### 13. Conformance requirements
 
 A conforming implementation must satisfy all of the following:
 
 - produce exactly 58 canonical edges in the order from section 4;
-- produce free-class counts `32, 32, 31, 31, 29, 29, 40, 38` in mode order;
-- implement the mixer, payload assignment, spread bits, and anti-copy rule
-  exactly;
+- produce free-class counts `32, 31, 29, 40` in mode order;
+- use mixed bits `31…30` as the selector and bits `29…0` as payload;
+- implement payload assignment, half-turn capacity fallback, and spread bits
+   exactly;
 - accept a non-default mask only when it belongs to no earlier family;
 - encode all fallback masks in the complete default family;
 - preserve one connection mask across all rendering styles;
 - derive cells only from incident selected edges;
 - produce the exact 16×22 raster with a background border;
 - permit recovery of every connection from its bridge pixels;
-- match the conformance vector in section 14.1.
+- match the conformance vector in section 13.1.
 
 Implementations should additionally test one-bit diffusion, observe every
 preferred mode and fallback in representative samples, compare large sampled
 sets for duplicate monochrome masks, and test invalid public inputs. Sampling
 is implementation evidence, not the proof of complete-domain uniqueness.
 
-#### 14.1 Conformance vector
+#### 13.1 Conformance vector
 
 For input `0x89abcdef` in Standard style:
 
@@ -542,7 +511,7 @@ fallback      = false
 luminance     = 2
 background    = #140040
 foreground    = #8d9200
-connections   = 0011110101100010110000111011000011010100111111001010100110
+connections   = 0001111010110001011000011101010011101100001010011011010011
 ```
 
 The connection string uses the canonical 58-edge order from section 4.

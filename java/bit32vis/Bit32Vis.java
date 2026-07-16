@@ -25,25 +25,18 @@ public final class Bit32Vis {
     public enum Style { STANDARD, HIGH_CONTRAST, MONOCHROME }
 
     public enum Mode {
-        LEFT_RIGHT("A|", false),
-        LEFT_RIGHT_ANTI("A| anti", true),
-        TOP_BOTTOM("A-", false),
-        TOP_BOTTOM_ANTI("A- anti", true),
-        HALF_TURN("A+", false),
-        HALF_TURN_ANTI("A+ anti", true),
-        DIAGONAL_SLASH("A/", false),
-        DIAGONAL_BACKSLASH("A\\", false);
+        LEFT_RIGHT("A|"),
+        TOP_BOTTOM("A-"),
+        HALF_TURN("A+"),
+        DIAGONAL_SLASH("A/");
 
         private final String label;
-        private final boolean anti;
 
-        Mode(String label, boolean anti) {
+        Mode(String label) {
             this.label = label;
-            this.anti = anti;
         }
 
         public String label() { return label; }
-        public boolean anti() { return anti; }
     }
 
     public record Edge(int startRow, int startColumn, int endRow, int endColumn) {}
@@ -121,20 +114,10 @@ public final class Bit32Vis {
             "T R' O' K' F'",
             "U V W X Y");
 
-    private static final String[][] DIAGONAL_BACKSLASH_TEMPLATE = rows(
-            "A B C D E",
-            "F G H I J",
-            "G' K L M N",
-            "H' L' O P Q",
-            "I' M' P' R S",
-            "J' N' Q' S' T",
-            "U V W X Y");
-
     private static final Edge[] EDGES = createEdges();
     private static final ModeDefinition[] MODE_DEFINITIONS = createModeDefinitions();
 
-    private record CellRef(String name, boolean copied) {}
-    private record Occurrence(int edgeIndex, boolean touchesCopy) {}
+    private record Occurrence(int edgeIndex) {}
     private record ConnectionClass(int key, Occurrence[] occurrences) {}
     private record ModeDefinition(Mode mode, ConnectionClass[] classes) {}
 
@@ -166,15 +149,22 @@ public final class Bit32Vis {
         if (preferredMode == Mode.LEFT_RIGHT) return encodeDefault(mixed);
 
         ModeDefinition definition = MODE_DEFINITIONS[preferredMode.ordinal()];
-        int payload = mixed & 0x1FFFFFFF;
+        int payload = mixed & 0x3FFFFFFF;
         int spread = mix32(mixed ^ (0x6D2B79F5 * (preferredMode.ordinal() + 1)));
         byte[] values = new byte[definition.classes().length];
         for (int i = 0; i < values.length; i++) {
-            values[i] = (byte) (i < 29
-                    ? (payload >>> (28 - i)) & 1
-                    : (spread >>> (31 - ((i - 29) & 31))) & 1);
+            values[i] = (byte) (i < 30
+                    ? (payload >>> (29 - i)) & 1
+                    : (spread >>> (31 - ((i - 30) & 31))) & 1);
         }
         return expand(definition, values);
+    }
+
+    private static boolean preferredModeHasCapacity(int mixed, Mode preferredMode) {
+        int missingBits = 30 - MODE_DEFINITIONS[preferredMode.ordinal()].classes().length;
+        if (missingBits <= 0) return true;
+        int omittedMask = (1 << missingBits) - 1;
+        return (mixed & omittedMask) == 0;
     }
 
     /** Default family is a one-to-one mapping of all 32 mixed bits. */
@@ -189,11 +179,9 @@ public final class Bit32Vis {
 
     private static byte[] expand(ModeDefinition definition, byte[] values) {
         byte[] result = new byte[EDGE_COUNT];
-        boolean anti = definition.mode().anti();
         for (int i = 0; i < definition.classes().length; i++) {
             for (Occurrence occurrence : definition.classes()[i].occurrences()) {
-                result[occurrence.edgeIndex()] = (byte) (values[i]
-                        ^ (anti && occurrence.touchesCopy() ? 1 : 0));
+                result[occurrence.edgeIndex()] = values[i];
             }
         }
         return result;
@@ -202,15 +190,12 @@ public final class Bit32Vis {
     /** Whether an edge mask belongs to the complete family represented by mode. */
     static boolean matchesMode(byte[] connections, Mode mode) {
         ModeDefinition definition = MODE_DEFINITIONS[mode.ordinal()];
-        boolean anti = mode.anti();
         for (ConnectionClass connectionClass : definition.classes()) {
             Occurrence first = connectionClass.occurrences()[0];
-            int expected = connections[first.edgeIndex()]
-                    ^ (anti && first.touchesCopy() ? 1 : 0);
+            int expected = connections[first.edgeIndex()];
             for (int i = 1; i < connectionClass.occurrences().length; i++) {
                 Occurrence occurrence = connectionClass.occurrences()[i];
-                int actual = connections[occurrence.edgeIndex()]
-                        ^ (anti && occurrence.touchesCopy() ? 1 : 0);
+                int actual = connections[occurrence.edgeIndex()];
                 if (actual != expected) return false;
             }
         }
@@ -381,10 +366,11 @@ public final class Bit32Vis {
 
     public static VisSpec spec(int input, Style style) {
         int mixed = mix32(input);
-        Mode preferredMode = Mode.values()[mixed >>> 29];
+        Mode preferredMode = Mode.values()[mixed >>> 30];
         byte[] candidate = encodeConnections(mixed, preferredMode);
         boolean fallback = preferredMode != Mode.LEFT_RIGHT
-                && conflictsWithEarlierMode(candidate, preferredMode);
+                && (!preferredModeHasCapacity(mixed, preferredMode)
+                        || conflictsWithEarlierMode(candidate, preferredMode));
         Mode actualMode = fallback ? Mode.LEFT_RIGHT : preferredMode;
         byte[] connections = fallback ? encodeDefault(mixed) : candidate;
 
@@ -439,18 +425,14 @@ public final class Bit32Vis {
     private static ModeDefinition[] createModeDefinitions() {
         return new ModeDefinition[]{
             createModeDefinition(Mode.LEFT_RIGHT, LEFT_RIGHT_TEMPLATE),
-            createModeDefinition(Mode.LEFT_RIGHT_ANTI, LEFT_RIGHT_TEMPLATE),
             createModeDefinition(Mode.TOP_BOTTOM, TOP_BOTTOM_TEMPLATE),
-            createModeDefinition(Mode.TOP_BOTTOM_ANTI, TOP_BOTTOM_TEMPLATE),
             createModeDefinition(Mode.HALF_TURN, HALF_TURN_TEMPLATE),
-            createModeDefinition(Mode.HALF_TURN_ANTI, HALF_TURN_TEMPLATE),
-            createModeDefinition(Mode.DIAGONAL_SLASH, DIAGONAL_SLASH_TEMPLATE),
-            createModeDefinition(Mode.DIAGONAL_BACKSLASH, DIAGONAL_BACKSLASH_TEMPLATE)
+            createModeDefinition(Mode.DIAGONAL_SLASH, DIAGONAL_SLASH_TEMPLATE)
         };
     }
 
     private static ModeDefinition createModeDefinition(Mode mode, String[][] template) {
-        CellRef[][] references = new CellRef[ROWS][COLUMNS];
+        String[][] references = new String[ROWS][COLUMNS];
         Map<String, Integer> sourcePositions = new HashMap<>();
         for (int row = 0; row < ROWS; row++) {
             if (template[row].length != COLUMNS) throw new IllegalStateException("bad template");
@@ -458,7 +440,7 @@ public final class Bit32Vis {
                 String token = template[row][column];
                 boolean copied = token.endsWith("'");
                 String name = copied ? token.substring(0, token.length() - 1) : token;
-                references[row][column] = new CellRef(name, copied);
+                references[row][column] = name;
                 if (!copied) sourcePositions.put(name, row * COLUMNS + column);
             }
         }
@@ -466,10 +448,10 @@ public final class Bit32Vis {
         TreeMap<Integer, List<Occurrence>> classes = new TreeMap<>();
         for (int edgeIndex = 0; edgeIndex < EDGES.length; edgeIndex++) {
             Edge edge = EDGES[edgeIndex];
-            CellRef start = references[edge.startRow()][edge.startColumn()];
-            CellRef end = references[edge.endRow()][edge.endColumn()];
-            Integer startSource = sourcePositions.get(start.name());
-            Integer endSource = sourcePositions.get(end.name());
+            String start = references[edge.startRow()][edge.startColumn()];
+            String end = references[edge.endRow()][edge.endColumn()];
+            Integer startSource = sourcePositions.get(start);
+            Integer endSource = sourcePositions.get(end);
             if (startSource == null || endSource == null || startSource.equals(endSource)) {
                 throw new IllegalStateException("invalid template edge in " + mode);
             }
@@ -477,7 +459,7 @@ public final class Bit32Vis {
             int second = Math.max(startSource, endSource);
             int key = first * 64 + second;
             classes.computeIfAbsent(key, ignored -> new ArrayList<>()).add(
-                    new Occurrence(edgeIndex, start.copied() || end.copied()));
+                    new Occurrence(edgeIndex));
         }
 
         ConnectionClass[] result = new ConnectionClass[classes.size()];

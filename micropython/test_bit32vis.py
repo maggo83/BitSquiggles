@@ -40,7 +40,7 @@ def test_edges_and_mode_capacities():
         if previous is not None:
             check(previous < edge, "lexical edge order")
         previous = edge
-    expected = (32, 32, 31, 31, 29, 29, 40, 38)
+    expected = (32, 31, 29, 40)
     for index, mode in enumerate(bit32vis.MODES):
         check(bit32vis.free_connection_count(mode) == expected[index],
               "free count %s" % mode)
@@ -49,10 +49,18 @@ def test_edges_and_mode_capacities():
 def test_modes_and_canonical_priority():
     seen = {mode: False for mode in bit32vis.MODES}
     saw_fallback = False
+    saw_half_turn_capacity_fallback = False
+    saw_accepted_half_turn = False
     for value in range(50000):
         visual = bit32vis.spec(value)
         seen[visual["preferred_mode"]] = True
         saw_fallback = saw_fallback or visual["fallback"]
+        if visual["preferred_mode"] == bit32vis.HALF_TURN:
+            if visual["mixed"] & 1:
+                check(visual["fallback"], "half-turn omitted bit fallback")
+                saw_half_turn_capacity_fallback = True
+            elif not visual["fallback"]:
+                saw_accepted_half_turn = True
         check(bit32vis.matches_mode(
             visual["connections"], visual["actual_mode"]), "actual mode match")
         if not visual["fallback"]:
@@ -66,6 +74,8 @@ def test_modes_and_canonical_priority():
     for mode in bit32vis.MODES:
         check(seen[mode], "mode observed %s" % mode)
     check(saw_fallback, "fallback observed")
+    check(saw_half_turn_capacity_fallback, "half-turn capacity fallback observed")
+    check(saw_accepted_half_turn, "injective half-turn candidate observed")
 
 
 def test_input_bit_avalanche():
@@ -129,7 +139,7 @@ def test_colors_parity_and_golden_vector():
     check(standard["mixed"] == 0x47AC5876, "golden mixed")
     check(standard["preferred_mode"] == bit32vis.TOP_BOTTOM, "golden mode")
     check(not standard["fallback"], "golden fallback")
-    check(mask == "0011110101100010110000111011000011010100111111001010100110",
+    check(mask == "0001111010110001011000011101010011101100001010011011010011",
           "golden connections")
     check(standard["background"]["hex"] == "#140040", "golden background")
     check(standard["foreground"]["hex"] == "#8d9200", "golden foreground")
