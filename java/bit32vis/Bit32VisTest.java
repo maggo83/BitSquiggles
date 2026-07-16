@@ -21,6 +21,7 @@ public final class Bit32VisTest {
         testSampledMonochromeInjectivity();
         testPixelRendererIsLossless();
         testColorsAndParity();
+        testSlashWrapRegression();
         testGoldenVector();
         testDemoHexParsing();
         System.out.println("Bit32Vis Java tests passed (" + checks + " checks)");
@@ -45,7 +46,7 @@ public final class Bit32VisTest {
             previous = key;
         }
 
-        int[] expected = {32, 31, 29, 40};
+        int[] expected = {32, 31, 29, 33};
         for (int i = 0; i < expected.length; i++) {
             check(Bit32Vis.freeConnectionCount(Bit32Vis.Mode.values()[i]) == expected[i],
                     "free connection count for " + Bit32Vis.Mode.values()[i]);
@@ -166,13 +167,25 @@ public final class Bit32VisTest {
         check(odd.swapped(), "odd parity is swapped");
     }
 
+    private static void testSlashWrapRegression() {
+        Bit32Vis.VisSpec visual = Bit32Vis.spec(0xD9ABCDEF);
+        check(visual.actualMode() == Bit32Vis.Mode.DIAGONAL_SLASH,
+                "slash wrap regression mode");
+        check(Bit32Vis.connection(visual.connections(), 1, 1, 2, 1)
+                        == Bit32Vis.connection(visual.connections(), 4, 3, 4, 4),
+                "slash copy maps upper vertical to lower horizontal edge");
+        check(Bit32Vis.connection(visual.connections(), 1, 2, 2, 2)
+                        == Bit32Vis.connection(visual.connections(), 3, 3, 3, 4),
+                "slash copy preserves adjacent diagonal edge relation");
+    }
+
     private static void testGoldenVector() {
         Bit32Vis.VisSpec visual = Bit32Vis.spec(0x89ABCDEF, Bit32Vis.Style.STANDARD);
         check(visual.mixed() == 0x47AC5876, "golden mixed value");
         check(visual.preferredMode() == Bit32Vis.Mode.TOP_BOTTOM, "golden mode");
         check(!visual.fallback(), "golden no fallback");
         check(flatten(visual.connections()).equals(
-                "0001111010110001011000011101010011101100001010011011010011"),
+                "0001111010110001011000011101010010101100001010011011010011"),
                 "golden connections");
         check(visual.background().hex().equals("#140040"), "golden background");
         check(visual.foreground().hex().equals("#8d9200"), "golden foreground");

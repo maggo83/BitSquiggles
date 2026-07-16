@@ -110,9 +110,9 @@ public final class Bit32Vis {
             "F G H I J",
             "K L M N I'",
             "O P Q M' H'",
-            "R S P' L' A'",
+            "R S P' L' G'",
             "T R' O' K' F'",
-            "U V W X Y");
+            "E' D' C' B' A'");
 
     private static final Edge[] EDGES = createEdges();
     private static final ModeDefinition[] MODE_DEFINITIONS = createModeDefinitions();
@@ -150,12 +150,9 @@ public final class Bit32Vis {
 
         ModeDefinition definition = MODE_DEFINITIONS[preferredMode.ordinal()];
         int payload = mixed & 0x3FFFFFFF;
-        int spread = mix32(mixed ^ (0x6D2B79F5 * (preferredMode.ordinal() + 1)));
         byte[] values = new byte[definition.classes().length];
         for (int i = 0; i < values.length; i++) {
-            values[i] = (byte) (i < 30
-                    ? (payload >>> (29 - i)) & 1
-                    : (spread >>> (31 - ((i - 30) & 31))) & 1);
+            values[i] = (byte) ((payload >>> (29 - (i % 30))) & 1);
         }
         return expand(definition, values);
     }

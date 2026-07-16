@@ -202,13 +202,14 @@ A  B  C  D  E
 F  G  H  I  J
 K  L  M  N  I'
 O  P  Q  M' H'
-R  S  P' L' A'
+R  S  P' L' G'
 T  R' O' K' F'
-U  V  W  X  Y
+E' D' C' B' A'
 ```
 
-Free connection classes: **40**. This is a copy template, not a geometric
-reflection of the non-square rectangle.
+Free connection classes: **33**. The final row extends the copied diagonal
+sequence and mirrors the top row in reverse. This remains a copy template, not
+a geometric reflection of the non-square rectangle.
 
 ### 7. Preferred modes and class-bit assignment
 
@@ -219,11 +220,20 @@ Bits `31…30` of `mixed` select one of four preferred modes:
 | 0 | Left/right (`A\|`) | 32 |
 | 1 | Top/bottom (`A-`) | 31 |
 | 2 | Half-turn (`A+`) | 29 |
-| 3 | Slash copy (`A/`) | 40 |
+| 3 | Slash copy (`A/`) | 33 |
 
-Bits `29…0` are the 30-bit payload. For a non-default mode with at least 30
-classes, assign these bits most significant first to the first 30 sorted
-connection classes.
+Bits `29…0` are the 30-bit payload. Assign them most significant first to the
+first 30 sorted connection classes. If a template has further classes, wrap
+around and reuse payload bits from the beginning:
+
+```text
+classBit[i] = payloadBit[29 - (i modulo 30)]
+```
+
+Thus top/bottom class 30 repeats class 0. Slash-copy classes 30…32 repeat
+classes 0…2. This extends visible relationships between the template's upper
+and lower regions without deriving any class value from a secondary
+pseudo-random source.
 
 The half-turn family has only 29 classes and cannot injectively represent all
 $2^{30}$ payloads. If payload bit 0 is zero, assign payload bits `29…1` most
@@ -231,17 +241,6 @@ significant first to its 29 classes. If payload bit 0 is one, do not accept the
 candidate: encode the complete mixed value in the default family and set
 `fallback` to true. The omitted bit is therefore represented by the choice
 between an eligible half-turn candidate and fallback rather than being lost.
-
-If the mode has further classes, calculate:
-
-```text
-spread = mix32(mixed XOR (0x6d2b79f5 × (modeIndex + 1)))
-```
-
-Assign spread bits from most significant to least significant to classes after
-the first 30. Top/bottom uses one spread bit and slash copy uses ten. Half-turn
-uses no spread bits. Spread remains part of this experiment and is considered
-separately from the four-mode selection change.
 
 Mode 0 is different: assign all 32 bits of `mixed`, most significant first,
 directly to the 32 left/right classes. This is a bijection onto the complete
@@ -482,10 +481,10 @@ The visual dictionary exposes `input`, `mixed`, `connections`, `cells`,
 A conforming implementation must satisfy all of the following:
 
 - produce exactly 58 canonical edges in the order from section 4;
-- produce free-class counts `32, 31, 29, 40` in mode order;
+- produce free-class counts `32, 31, 29, 33` in mode order;
 - use mixed bits `31…30` as the selector and bits `29…0` as payload;
-- implement payload assignment, half-turn capacity fallback, and spread bits
-   exactly;
+- implement cyclic payload reuse and half-turn capacity fallback exactly;
+- derive no connection-class values from a secondary pseudo-random source;
 - accept a non-default mask only when it belongs to no earlier family;
 - encode all fallback masks in the complete default family;
 - preserve one connection mask across all rendering styles;
@@ -511,7 +510,7 @@ fallback      = false
 luminance     = 2
 background    = #140040
 foreground    = #8d9200
-connections   = 0001111010110001011000011101010011101100001010011011010011
+connections   = 0001111010110001011000011101010010101100001010011011010011
 ```
 
 The connection string uses the canonical 58-edge order from section 4.

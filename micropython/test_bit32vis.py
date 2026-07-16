@@ -40,7 +40,7 @@ def test_edges_and_mode_capacities():
         if previous is not None:
             check(previous < edge, "lexical edge order")
         previous = edge
-    expected = (32, 31, 29, 40)
+    expected = (32, 31, 29, 33)
     for index, mode in enumerate(bit32vis.MODES):
         check(bit32vis.free_connection_count(mode) == expected[index],
               "free count %s" % mode)
@@ -139,10 +139,22 @@ def test_colors_parity_and_golden_vector():
     check(standard["mixed"] == 0x47AC5876, "golden mixed")
     check(standard["preferred_mode"] == bit32vis.TOP_BOTTOM, "golden mode")
     check(not standard["fallback"], "golden fallback")
-    check(mask == "0001111010110001011000011101010011101100001010011011010011",
+    check(mask == "0001111010110001011000011101010010101100001010011011010011",
           "golden connections")
     check(standard["background"]["hex"] == "#140040", "golden background")
     check(standard["foreground"]["hex"] == "#8d9200", "golden foreground")
+
+
+def test_slash_wrap_regression():
+    visual = bit32vis.spec(0xD9ABCDEF)
+    check(visual["actual_mode"] == bit32vis.DIAGONAL_SLASH,
+          "slash wrap regression mode")
+    check(bit32vis._connection(visual["connections"], 1, 1, 2, 1)
+          == bit32vis._connection(visual["connections"], 4, 3, 4, 4),
+          "slash copy maps upper vertical to lower horizontal edge")
+    check(bit32vis._connection(visual["connections"], 1, 2, 2, 2)
+          == bit32vis._connection(visual["connections"], 3, 3, 3, 4),
+          "slash copy preserves adjacent diagonal edge relation")
 
 
 def test_input_validation():
@@ -158,6 +170,7 @@ def main():
     test_sampled_monochrome_injectivity()
     test_pixel_renderer_is_lossless()
     test_colors_parity_and_golden_vector()
+    test_slash_wrap_regression()
     test_input_validation()
     print("Bit32Vis MicroPython tests passed (%d checks)" % _checks)
 

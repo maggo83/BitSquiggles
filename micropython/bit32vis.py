@@ -72,9 +72,9 @@ DIAGONAL_SLASH_TEMPLATE = (
     "F G H I J",
     "K L M N I'",
     "O P Q M' H'",
-    "R S P' L' A'",
+    "R S P' L' G'",
     "T R' O' K' F'",
-    "U V W X Y",
+    "E' D' C' B' A'",
 )
 
 
@@ -181,13 +181,9 @@ def _encode_connections(mixed, mode_index):
         return _encode_default(mixed)
     definition = _MODE_DEFINITIONS[mode_index]
     payload = mixed & 0x3FFFFFFF
-    spread = mix32(mixed ^ ((0x6D2B79F5 * (mode_index + 1)) & MASK32))
     values = bytearray(len(definition["classes"]))
     for index in range(len(values)):
-        if index < 30:
-            values[index] = (payload >> (29 - index)) & 1
-        else:
-            values[index] = (spread >> (31 - ((index - 30) & 31))) & 1
+        values[index] = (payload >> (29 - (index % 30))) & 1
     return _expand(definition, values)
 
 
