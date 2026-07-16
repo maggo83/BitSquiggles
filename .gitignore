@@ -1,0 +1,15 @@
+# Java build output
+out/
+*.class
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary files
+*.tmp

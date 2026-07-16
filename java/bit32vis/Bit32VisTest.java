@@ -1,0 +1,213 @@
+// Grug 2-Clause License
+// 1. do what want
+// 2. not sue grug
+
+package bit32vis;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+/** Dependency-free test harness. Run with: java -cp out bit32vis.Bit32VisTest */
+public final class Bit32VisTest {
+    private static int checks;
+
+    private Bit32VisTest() {}
+
+    public static void main(String[] args) {
+        testCanonicalEdgesAndModeCapacities();
+        testEveryModeAndCanonicalPriority();
+        testInputBitAvalanche();
+        testSampledMonochromeInjectivity();
+        testPixelRendererIsLossless();
+        testColorsAndParity();
+        testGoldenVector();
+        testDemoHexParsing();
+        System.out.println("Bit32Vis Java tests passed (" + checks + " checks)");
+    }
+
+    private static void testCanonicalEdgesAndModeCapacities() {
+        Bit32Vis.Edge[] edges = Bit32Vis.edges();
+        check(edges.length == 58, "58 canonical edges");
+        String previous = "";
+        for (Bit32Vis.Edge edge : edges) {
+            check(edge.endRow() == edge.startRow() || edge.endRow() == edge.startRow() + 1,
+                    "edge row adjacency");
+            check(edge.endColumn() == edge.startColumn()
+                            || edge.endColumn() == edge.startColumn() + 1,
+                    "edge column adjacency");
+            check((edge.endRow() - edge.startRow())
+                            + (edge.endColumn() - edge.startColumn()) == 1,
+                    "orthogonal unit edge");
+            String key = String.format("%d%d%d%d", edge.startRow(), edge.startColumn(),
+                    edge.endRow(), edge.endColumn());
+            check(previous.compareTo(key) < 0, "lexical edge order");
+            previous = key;
+        }
+
+        int[] expected = {32, 32, 31, 31, 29, 29, 40, 38};
+        for (int i = 0; i < expected.length; i++) {
+            check(Bit32Vis.freeConnectionCount(Bit32Vis.Mode.values()[i]) == expected[i],
+                    "free connection count for " + Bit32Vis.Mode.values()[i]);
+        }
+    }
+
+    private static void testEveryModeAndCanonicalPriority() {
+        boolean[] seenPreferred = new boolean[Bit32Vis.Mode.values().length];
+        boolean sawFallback = false;
+        for (int input = 0; input < 250_000; input++) {
+            Bit32Vis.VisSpec visual = Bit32Vis.spec(input);
+            int preferredIndex = visual.preferredMode().ordinal();
+            seenPreferred[preferredIndex] = true;
+            sawFallback |= visual.fallback();
+
+            check(Bit32Vis.matchesMode(visual.connections(), visual.actualMode()),
+                    "visual matches actual mode");
+            if (!visual.fallback()) {
+                for (int earlier = 0; earlier < preferredIndex; earlier++) {
+                    check(!Bit32Vis.matchesMode(
+                                    visual.connections(), Bit32Vis.Mode.values()[earlier]),
+                            "accepted mode is canonical");
+                }
+            } else {
+                check(visual.actualMode() == Bit32Vis.Mode.LEFT_RIGHT,
+                        "fallback uses default mode");
+            }
+        }
+        for (int mode = 0; mode < seenPreferred.length; mode++) {
+            check(seenPreferred[mode], "preferred mode observed: " + mode);
+        }
+        check(sawFallback, "ambiguous candidate fallback observed");
+    }
+
+    private static void testInputBitAvalanche() {
+        byte[] base = Bit32Vis.spec(0).connections();
+        int totalDistance = 0;
+        for (int bit = 0; bit < 32; bit++) {
+            byte[] changed = Bit32Vis.spec(1 << bit).connections();
+            int distance = distance(base, changed);
+            check(distance > 0, "input bit changes monochrome visual: " + bit);
+            check(distance >= 20, "input bit has useful edge avalanche: " + bit);
+            totalDistance += distance;
+        }
+        check(totalDistance / 32.0 >= 26.0, "average edge avalanche");
+    }
+
+    private static void testSampledMonochromeInjectivity() {
+        Set<Long> masks = new HashSet<>();
+        for (int input = 0; input < 500_000; input++) {
+            Bit32Vis.VisSpec visual = Bit32Vis.spec(input, Bit32Vis.Style.MONOCHROME);
+            check(masks.add(pack(visual.connections())),
+                    "unique sampled monochrome visual: " + input);
+        }
+    }
+
+    private static void testPixelRendererIsLossless() {
+        for (int input = 0; input < 2_000; input++) {
+            Bit32Vis.VisSpec visual = Bit32Vis.spec(input);
+            Bit32Vis.PixelGrid grid = Bit32Vis.pixels(input);
+            check(grid.width() == 16 && grid.height() == 22, "pixel dimensions");
+            check(grid.pixels().length == 352, "pixel storage");
+
+            for (int x = 0; x < grid.width(); x++) {
+                check(grid.pixels()[x] == 0, "top border");
+                check(grid.pixels()[(grid.height() - 1) * grid.width() + x] == 0,
+                        "bottom border");
+            }
+            for (int y = 0; y < grid.height(); y++) {
+                check(grid.pixels()[y * grid.width()] == 0, "left border");
+                check(grid.pixels()[y * grid.width() + grid.width() - 1] == 0,
+                        "right border");
+            }
+
+            Bit32Vis.Edge[] edges = Bit32Vis.edges();
+            for (int edgeIndex = 0; edgeIndex < edges.length; edgeIndex++) {
+                Bit32Vis.Edge edge = edges[edgeIndex];
+                int x = 1 + edge.startColumn() * 3;
+                int y = 1 + edge.startRow() * 3;
+                int bridge = edge.startRow() == edge.endRow()
+                        ? grid.pixels()[y * 16 + x + 2]
+                        : grid.pixels()[(y + 2) * 16 + x];
+                check(bridge == visual.connections()[edgeIndex],
+                        "edge recoverable from pixel raster");
+            }
+        }
+    }
+
+    private static void testColorsAndParity() {
+        int input = 0x89ABCDEF;
+        Bit32Vis.VisSpec standard = Bit32Vis.spec(input, Bit32Vis.Style.STANDARD);
+        Bit32Vis.VisSpec contrast = Bit32Vis.spec(input, Bit32Vis.Style.HIGH_CONTRAST);
+        Bit32Vis.VisSpec mono = Bit32Vis.spec(input, Bit32Vis.Style.MONOCHROME);
+        check(Arrays.equals(standard.connections(), contrast.connections()),
+                "style preserves connections");
+        check(Arrays.equals(standard.connections(), mono.connections()),
+                "monochrome preserves unique connections");
+        check(contrast.foreground().C() > standard.foreground().C(),
+                "high-contrast chroma");
+        close(0.0, mono.foreground().C(), "monochrome foreground chroma");
+        close(0.0, mono.background().C(), "monochrome background chroma");
+
+        Bit32Vis.VisSpec even = Bit32Vis.spec(0);
+        Bit32Vis.VisSpec odd = Bit32Vis.spec(1);
+        check(!even.swapped(), "even parity is unswapped");
+        check(odd.swapped(), "odd parity is swapped");
+    }
+
+    private static void testGoldenVector() {
+        Bit32Vis.VisSpec visual = Bit32Vis.spec(0x89ABCDEF, Bit32Vis.Style.STANDARD);
+        check(visual.mixed() == 0x47AC5876, "golden mixed value");
+        check(visual.preferredMode() == Bit32Vis.Mode.TOP_BOTTOM, "golden mode");
+        check(!visual.fallback(), "golden no fallback");
+        check(flatten(visual.connections()).equals(
+                "0011110101100010110000111011000011010100111111001010100110"),
+                "golden connections");
+        check(visual.background().hex().equals("#140040"), "golden background");
+        check(visual.foreground().hex().equals("#8d9200"), "golden foreground");
+    }
+
+    private static void testDemoHexParsing() {
+        check(DemoApp.parseBits("89abcdef") == 0x89ABCDEF, "parse lowercase hex");
+        check(DemoApp.parseBits("0xFFFFFFFF") == -1, "parse unsigned max with prefix");
+        expectFailure(() -> DemoApp.parseBits("123"), "reject short input");
+        expectFailure(() -> DemoApp.parseBits("zzzzzzzz"), "reject non-hex input");
+    }
+
+    private static long pack(byte[] connections) {
+        long result = 0;
+        for (byte connection : connections) result = (result << 1) | connection;
+        return result;
+    }
+
+    private static int distance(byte[] first, byte[] second) {
+        int result = 0;
+        for (int i = 0; i < first.length; i++) result += first[i] ^ second[i];
+        return result;
+    }
+
+    private static String flatten(byte[] connections) {
+        StringBuilder result = new StringBuilder(connections.length);
+        for (byte connection : connections) result.append(connection);
+        return result.toString();
+    }
+
+    private static void check(boolean condition, String message) {
+        checks++;
+        if (!condition) throw new AssertionError(message);
+    }
+
+    private static void close(double expected, double actual, String message) {
+        check(Math.abs(expected - actual) < 1e-12,
+                message + ": expected " + expected + ", got " + actual);
+    }
+
+    private static void expectFailure(Runnable action, String message) {
+        checks++;
+        try {
+            action.run();
+        } catch (IllegalArgumentException expected) {
+            return;
+        }
+        throw new AssertionError(message);
+    }
+}

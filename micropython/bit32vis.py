@@ -1,0 +1,396 @@
+"""Injective connection-graph visualization of an unsigned 32-bit value.
+
+The module uses only core MicroPython features plus ``math``. Connections are
+stored in lexical ``(start_row, start_column, end_row, end_column)`` order.
+
+Grug 2-Clause License: do what want; not sue grug.
+"""
+
+import math
+
+ROWS = 7
+COLUMNS = 5
+EDGE_COUNT = 58
+PIXEL_WIDTH = 16
+PIXEL_HEIGHT = 22
+
+STANDARD = "standard"
+HIGH_CONTRAST = "high_contrast"
+MONOCHROME = "monochrome"
+STYLES = (STANDARD, HIGH_CONTRAST, MONOCHROME)
+
+LEFT_RIGHT = "A|"
+LEFT_RIGHT_ANTI = "A| anti"
+TOP_BOTTOM = "A-"
+TOP_BOTTOM_ANTI = "A- anti"
+HALF_TURN = "A+"
+HALF_TURN_ANTI = "A+ anti"
+DIAGONAL_SLASH = "A/"
+DIAGONAL_BACKSLASH = "A\\"
+MODES = (
+    LEFT_RIGHT,
+    LEFT_RIGHT_ANTI,
+    TOP_BOTTOM,
+    TOP_BOTTOM_ANTI,
+    HALF_TURN,
+    HALF_TURN_ANTI,
+    DIAGONAL_SLASH,
+    DIAGONAL_BACKSLASH,
+)
+ANTI_MODES = (LEFT_RIGHT_ANTI, TOP_BOTTOM_ANTI, HALF_TURN_ANTI)
+
+BASE_L_MIN = 0.5
+BASE_L_MAX = 0.7
+CHROMA_MIN = 0.05
+CHROMA_MAX = 0.25
+HC_L_ADD = 0.30
+BG_L_SPREAD = 0.50
+BG_L_EXTRA_HC = 0.30
+CHROMA_HC_ADD = 0.10
+MASK32 = 0xFFFFFFFF
+
+LEFT_RIGHT_TEMPLATE = (
+    "A B C B' A'",
+    "D E F E' D'",
+    "G H I H' G'",
+    "J K L K' J'",
+    "M N O N' M'",
+    "P Q R Q' P'",
+    "S T U T' S'",
+)
+TOP_BOTTOM_TEMPLATE = (
+    "A B C D E",
+    "F G H I J",
+    "K L M N O",
+    "P Q R S T",
+    "K' L' M' N' O'",
+    "F' G' H' I' J'",
+    "A' B' C' D' E'",
+)
+HALF_TURN_TEMPLATE = (
+    "A B C D E",
+    "F G H I J",
+    "K L M N O",
+    "P Q R Q' P'",
+    "O' N' M' L' K'",
+    "J' I' H' G' F'",
+    "E' D' C' B' A'",
+)
+DIAGONAL_SLASH_TEMPLATE = (
+    "A B C D E",
+    "F G H I J",
+    "K L M N I'",
+    "O P Q M' H'",
+    "R S P' L' A'",
+    "T R' O' K' F'",
+    "U V W X Y",
+)
+DIAGONAL_BACKSLASH_TEMPLATE = (
+    "A B C D E",
+    "F G H I J",
+    "G' K L M N",
+    "H' L' O P Q",
+    "I' M' P' R S",
+    "J' N' Q' S' T",
+    "U V W X Y",
+)
+
+
+def _create_edges():
+    result = []
+    for row in range(ROWS):
+        for column in range(COLUMNS):
+            if column + 1 < COLUMNS:
+                result.append((row, column, row, column + 1))
+            if row + 1 < ROWS:
+                result.append((row, column, row + 1, column))
+    return tuple(result)
+
+
+EDGES = _create_edges()
+
+
+def _create_mode_definition(mode, template_rows):
+    template = tuple(tuple(row.split()) for row in template_rows)
+    source_positions = {}
+    references = []
+    for row in range(ROWS):
+        reference_row = []
+        for column in range(COLUMNS):
+            token = template[row][column]
+            copied = token.endswith("'")
+            name = token[:-1] if copied else token
+            reference_row.append((name, copied))
+            if not copied:
+                source_positions[name] = row * COLUMNS + column
+        references.append(tuple(reference_row))
+
+    classes = {}
+    for edge_index, edge in enumerate(EDGES):
+        start_row, start_column, end_row, end_column = edge
+        start = references[start_row][start_column]
+        end = references[end_row][end_column]
+        first = source_positions[start[0]]
+        second = source_positions[end[0]]
+        if first == second:
+            raise ValueError("invalid template edge in %s" % mode)
+        key = (min(first, second), max(first, second))
+        classes.setdefault(key, []).append(
+            (edge_index, start[1] or end[1]))
+
+    ordered = []
+    for key in sorted(classes):
+        ordered.append((key, tuple(classes[key])))
+    return {"mode": mode, "classes": tuple(ordered)}
+
+
+_MODE_DEFINITIONS = (
+    _create_mode_definition(LEFT_RIGHT, LEFT_RIGHT_TEMPLATE),
+    _create_mode_definition(LEFT_RIGHT_ANTI, LEFT_RIGHT_TEMPLATE),
+    _create_mode_definition(TOP_BOTTOM, TOP_BOTTOM_TEMPLATE),
+    _create_mode_definition(TOP_BOTTOM_ANTI, TOP_BOTTOM_TEMPLATE),
+    _create_mode_definition(HALF_TURN, HALF_TURN_TEMPLATE),
+    _create_mode_definition(HALF_TURN_ANTI, HALF_TURN_TEMPLATE),
+    _create_mode_definition(DIAGONAL_SLASH, DIAGONAL_SLASH_TEMPLATE),
+    _create_mode_definition(DIAGONAL_BACKSLASH, DIAGONAL_BACKSLASH_TEMPLATE),
+)
+
+
+def _validate_bits(bits):
+    if not isinstance(bits, int) or bits < 0 or bits > MASK32:
+        raise ValueError("bits must be an unsigned 32-bit integer")
+
+
+def _popcount(value):
+    count = 0
+    while value:
+        value &= value - 1
+        count += 1
+    return count
+
+
+def mix32(value):
+    """Return the bijective Murmur fmix32 permutation with a Weyl offset."""
+    value = (value + 0x9E3779B9) & MASK32
+    value ^= value >> 16
+    value = (value * 0x85EBCA6B) & MASK32
+    value ^= value >> 13
+    value = (value * 0xC2B2AE35) & MASK32
+    value ^= value >> 16
+    return value & MASK32
+
+
+def free_connection_count(mode):
+    return len(_MODE_DEFINITIONS[MODES.index(mode)]["classes"])
+
+
+def _expand(definition, values):
+    result = bytearray(EDGE_COUNT)
+    anti = definition["mode"] in ANTI_MODES
+    for index, connection_class in enumerate(definition["classes"]):
+        for edge_index, touches_copy in connection_class[1]:
+            result[edge_index] = values[index] ^ (1 if anti and touches_copy else 0)
+    return result
+
+
+def _encode_default(mixed):
+    values = bytearray(32)
+    for index in range(32):
+        values[index] = (mixed >> (31 - index)) & 1
+    return _expand(_MODE_DEFINITIONS[0], values)
+
+
+def _encode_connections(mixed, mode_index):
+    if mode_index == 0:
+        return _encode_default(mixed)
+    definition = _MODE_DEFINITIONS[mode_index]
+    payload = mixed & 0x1FFFFFFF
+    spread = mix32(mixed ^ ((0x6D2B79F5 * (mode_index + 1)) & MASK32))
+    values = bytearray(len(definition["classes"]))
+    for index in range(len(values)):
+        if index < 29:
+            values[index] = (payload >> (28 - index)) & 1
+        else:
+            values[index] = (spread >> (31 - ((index - 29) & 31))) & 1
+    return _expand(definition, values)
+
+
+def matches_mode(connections, mode):
+    definition = _MODE_DEFINITIONS[MODES.index(mode)]
+    anti = mode in ANTI_MODES
+    for connection_class in definition["classes"]:
+        occurrences = connection_class[1]
+        edge_index, touches_copy = occurrences[0]
+        expected = connections[edge_index] ^ (1 if anti and touches_copy else 0)
+        for edge_index, touches_copy in occurrences[1:]:
+            actual = connections[edge_index] ^ (1 if anti and touches_copy else 0)
+            if actual != expected:
+                return False
+    return True
+
+
+def _conflicts_with_earlier_mode(connections, mode_index):
+    for earlier in range(mode_index):
+        if matches_mode(connections, MODES[earlier]):
+            return True
+    return False
+
+
+def _active_cells(connections):
+    cells = [[0 for _ in range(COLUMNS)] for _ in range(ROWS)]
+    for index, edge in enumerate(EDGES):
+        if not connections[index]:
+            continue
+        start_row, start_column, end_row, end_column = edge
+        cells[start_row][start_column] = 1
+        cells[end_row][end_column] = 1
+    return cells
+
+
+def _clamp01(value):
+    return max(0.0, min(1.0, value))
+
+
+def _srgb_encode(value):
+    value = _clamp01(value)
+    if value <= 0.0031308:
+        return 12.92 * value
+    return 1.055 * math.pow(value, 1.0 / 2.4) - 0.055
+
+
+def _make_color(lightness, chroma, hue):
+    radians = hue * math.pi / 180.0
+    a = chroma * math.cos(radians)
+    b = chroma * math.sin(radians)
+    l_ = lightness + 0.3963377774 * a + 0.2158037573 * b
+    m_ = lightness - 0.1055613458 * a - 0.0638541728 * b
+    s_ = lightness - 0.0894841775 * a - 1.2914855480 * b
+    l3 = l_ * l_ * l_
+    m3 = m_ * m_ * m_
+    s3 = s_ * s_ * s_
+    red = _srgb_encode(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3)
+    green = _srgb_encode(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3)
+    blue = _srgb_encode(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3)
+    red = max(0, min(255, int(red * 255 + 0.5)))
+    green = max(0, min(255, int(green * 255 + 0.5)))
+    blue = max(0, min(255, int(blue * 255 + 0.5)))
+    return {"L": lightness, "C": chroma, "h": hue,
+            "hex": "#%02x%02x%02x" % (red, green, blue)}
+
+
+def _derive_colors(hue_index, chroma_index, luminance_index, swap, style):
+    if style not in STYLES:
+        raise ValueError("unknown style: %s" % style)
+    foreground_hue = hue_index * (360.0 / 16.0)
+    background_hue = (foreground_hue + 180.0) % 360.0
+    chroma = CHROMA_MIN + chroma_index * ((CHROMA_MAX - CHROMA_MIN) / 15.0)
+    base_l = BASE_L_MIN + luminance_index * ((BASE_L_MAX - BASE_L_MIN) / 3.0)
+    if style == STANDARD:
+        foreground_l = base_l
+        background_l = foreground_l - BG_L_SPREAD
+        foreground_c = chroma
+        background_c = chroma
+    elif style == HIGH_CONTRAST:
+        foreground_l = base_l + HC_L_ADD
+        background_l = foreground_l - BG_L_SPREAD - BG_L_EXTRA_HC
+        foreground_c = chroma + CHROMA_HC_ADD
+        background_c = chroma + CHROMA_HC_ADD
+    else:
+        foreground_l = base_l + HC_L_ADD
+        background_l = foreground_l - BG_L_SPREAD - BG_L_EXTRA_HC
+        foreground_c = 0.0
+        background_c = 0.0
+    foreground_l = _clamp01(foreground_l)
+    background_l = _clamp01(background_l)
+    if swap:
+        foreground_l, background_l = background_l, foreground_l
+    foreground = _make_color(foreground_l, foreground_c, foreground_hue)
+    background = _make_color(background_l, background_c, background_hue)
+    return background, foreground
+
+
+def spec(bits, style=STANDARD):
+    """Return the canonical connection visual for an unsigned 32-bit integer."""
+    _validate_bits(bits)
+    mixed = mix32(bits)
+    mode_index = mixed >> 29
+    candidate = _encode_connections(mixed, mode_index)
+    fallback = mode_index != 0 and _conflicts_with_earlier_mode(candidate, mode_index)
+    actual_mode = LEFT_RIGHT if fallback else MODES[mode_index]
+    connections = _encode_default(mixed) if fallback else candidate
+    hue_index = (mixed >> 12) & 0xF
+    chroma_index = (mixed >> 8) & 0xF
+    luminance_index = mixed & 0x3
+    swapped = (_popcount(bits) & 1) == 1
+    background, foreground = _derive_colors(
+        hue_index, chroma_index, luminance_index, swapped, style)
+    return {
+        "input": bits,
+        "mixed": mixed,
+        "connections": connections,
+        "cells": _active_cells(connections),
+        "background": background,
+        "foreground": foreground,
+        "style": style,
+        "preferred_mode": MODES[mode_index],
+        "actual_mode": actual_mode,
+        "fallback": fallback,
+        "luminance_index": luminance_index,
+        "swapped": swapped,
+    }
+
+
+def _connection(connections, start_row, start_column, end_row, end_column):
+    target = (start_row, start_column, end_row, end_column)
+    for index, edge in enumerate(EDGES):
+        if edge == target:
+            return connections[index]
+    raise ValueError("not a canonical edge")
+
+
+def _generate_pixels(connections):
+    result = bytearray(PIXEL_WIDTH * PIXEL_HEIGHT)
+    cells = _active_cells(connections)
+    for row in range(ROWS):
+        for column in range(COLUMNS):
+            if not cells[row][column]:
+                continue
+            x = 1 + column * 3
+            y = 1 + row * 3
+            result[ y      * PIXEL_WIDTH + x    ] = 1
+            result[ y      * PIXEL_WIDTH + x + 1] = 1
+            result[(y + 1) * PIXEL_WIDTH + x    ] = 1
+            result[(y + 1) * PIXEL_WIDTH + x + 1] = 1
+    for index, edge in enumerate(EDGES):
+        if not connections[index]:
+            continue
+        start_row, start_column, end_row, _ = edge
+        x = 1 + start_column * 3
+        y = 1 + start_row * 3
+        if start_row == end_row:
+            result[ y      * PIXEL_WIDTH + x + 2] = 1
+            result[(y + 1) * PIXEL_WIDTH + x + 2] = 1
+        else:
+            result[(y + 2) * PIXEL_WIDTH + x    ] = 1
+            result[(y + 2) * PIXEL_WIDTH + x + 1] = 1
+    for row in range(ROWS - 1):
+        for column in range(COLUMNS - 1):
+            if (_connection(connections, row, column, row, column + 1)
+                    and _connection(connections, row + 1, column, row + 1, column + 1)
+                    and _connection(connections, row, column, row + 1, column)
+                    and _connection(connections, row, column + 1, row + 1, column + 1)):
+                result[(3 + row * 3) * PIXEL_WIDTH + 3 + column * 3] = 1
+    return result
+
+
+def pixels(bits, style=STANDARD):
+    """Return the exact bordered 16x22 one-bit raster and its colors."""
+    visual = spec(bits, style)
+    return {
+        "width": PIXEL_WIDTH,
+        "height": PIXEL_HEIGHT,
+        "pixels": _generate_pixels(visual["connections"]),
+        "background": visual["background"],
+        "foreground": visual["foreground"],
+        "style": style,
+    }
