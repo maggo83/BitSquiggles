@@ -1,4 +1,38 @@
 {
-  "private": true,
-  "type": "module"
+  "name": "bitsquiggles",
+  "version": "0.1.0",
+  "description": "Dependency-free BitSquiggle32 visual encoding",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./bitsquiggle32.d.ts",
+      "import": "./bitsquiggle32.js",
+      "default": "./bitsquiggle32.js"
+    },
+    "./renderer": {
+      "types": "./bitsquiggle32-renderer.d.ts",
+      "import": "./bitsquiggle32-renderer.js",
+      "default": "./bitsquiggle32-renderer.js"
+    }
+  },
+  "types": "./bitsquiggle32.d.ts",
+  "files": [
+    "bitsquiggle32.js",
+    "bitsquiggle32.d.ts",
+    "bitsquiggle32-renderer.js",
+    "bitsquiggle32-renderer.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node bitsquiggle32.test.mjs",
+    "pack:check": "npm pack --dry-run"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maggo83/BitSquiggles.git",
+    "directory": "web"
+  },
+  "homepage": "https://github.com/maggo83/BitSquiggles#readme"
 }

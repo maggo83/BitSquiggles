@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bitsquiggles"
+version = "0.1.0"
+description = "Dependency-free BitSquiggle32 visual encoding"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "maggo83" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Security :: Cryptography",
+]
+
+[project.urls]
+Homepage = "https://github.com/maggo83/BitSquiggles"
+Repository = "https://github.com/maggo83/BitSquiggles"
+
+[tool.setuptools]
+package-dir = { "" = "micropython" }
+py-modules = ["bitsquiggle32"]

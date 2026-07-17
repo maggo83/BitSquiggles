@@ -1,8 +1,7 @@
 # BitSquiggles / BitSquiggle32 Specification
 
-**Status:** Experimental, unreleased  
-**Implementations:** Java 17 and MicroPython-compatible Python  
-**License:** Grug 2-Clause License
+← Back to the [BitSquiggles project overview](README.md), including project
+status, safety boundaries, implementation guides, and license.
 
 This document is the technical source of truth for BitSquiggle32. It is organized
 in two levels:
@@ -435,8 +434,33 @@ Smoothing must not close an unselected connection.
 
 ### 12. Reference API mapping
 
-The language APIs expose the same conceptual operations and values. Their
-container types and naming conventions differ.
+Every core exposes the following conceptual API:
+
+| Operation | Result |
+| --- | --- |
+| `spec(input[, style])` | canonical visual specification |
+| `pixels(input[, style])` | exact pixel grid and its colors |
+
+`spec()` is pure: it derives the mixed input, connections, active cells, colors,
+style, preferred and actual modes, fallback state, luminance index, and polarity
+metadata. `pixels()` is also pure and derives the exact 16×22 binary raster and
+its colors from the same input and style. Neither operation draws anything.
+
+Every implementation exposes the common dimensions `ROWS`, `COLUMNS`,
+`EDGE_COUNT`, `PIXEL_WIDTH`, and `PIXEL_HEIGHT`, plus the canonical edge list.
+Every implementation also exposes the styles Standard, High Contrast, and
+Monochrome and the mode labels `A|`, `A-`, `A+`, and `A/`, using its language's
+normal conventions for constants or enums.
+
+Optional target renderers use the root name `BitSquiggle32Renderer` (adapted to
+the language's filename convention). They expose `renderSmooth()` for a
+canonical visual specification and `renderRaster()` for a pixel grid. The
+former may antialias only according to section 11; the latter paints each pixel
+grid element as an exact whole target pixel or integer-scaled square. A renderer
+is optional and does not change core identity or the exact raster contract.
+
+The following sections define only language-specific container types and
+additional helpers.
 
 #### 12.1 Java 17
 
@@ -449,11 +473,12 @@ Public static operations on `BitSquiggle32`:
 | `spec(int[, Style])` | `VisSpec` |
 | `pixels(int[, Style])` | `PixelGrid` |
 
-Java represents the unsigned input domain with all `int` bit patterns. Public
-records are `Edge`, `OklchColor`, `VisSpec`, and `PixelGrid`; styles and modes
-are enums. Arrays held by records remain mutable Java arrays. The reference
-implementation also keeps `mix32(int)` and `matchesMode(byte[], Mode)` visible
-to its package for conformance tests; they are not part of the public Java API.
+`Style` and `Mode` are public enums. Public records are `Edge`, `OklchColor`,
+`VisSpec`, and `PixelGrid`; their components define the returned fields. Java
+represents the unsigned input domain with all `int` bit patterns. Arrays held by
+records remain mutable Java arrays. The implementation also keeps
+`mix32(int)` and `matchesMode(byte[], Mode)` visible to its package for
+conformance tests; they are not public Java API.
 
 #### 12.2 MicroPython-compatible Python
 
@@ -469,12 +494,31 @@ Public module operations:
 
 `bits` must be an `int` in the inclusive range `0…0xffffffff`; otherwise
 `spec()` and `pixels()` raise `ValueError`. The style must be `standard`,
-`high_contrast`, or `monochrome`; unknown styles raise `ValueError`.
+`high-contrast`, or `monochrome`; unknown styles raise `ValueError`.
 
 The visual dictionary exposes `input`, `mixed`, `connections`, `cells`,
 `background`, `foreground`, `style`, `preferred_mode`, `actual_mode`,
 `fallback`, `luminance_index`, and `swapped`. The raster dictionary exposes
 `width`, `height`, `pixels`, `background`, `foreground`, and `style`.
+
+#### 12.3 JavaScript and TypeScript
+
+Public ESM operations:
+
+| Operation | Result |
+| --- | --- |
+| `spec(input[, style])` | `VisSpec` object |
+| `pixels(input[, style])` | `PixelGrid` object |
+| `parseHex(value)` | signed 32-bit bit pattern |
+| `formatHex(value)` | eight-character uppercase hexadecimal string |
+
+JavaScript accepts numbers carrying signed 32-bit bit patterns. Styles are the
+strings `standard`, `high-contrast`, and `monochrome`. `parseHex()` accepts one
+to eight hexadecimal digits after optional surrounding whitespace and an
+optional `0x` prefix, then returns a signed bit pattern; `formatHex()` displays
+one as an unsigned hexadecimal value. `VisSpec` and `PixelGrid` use camel-case
+property names. The published TypeScript declarations are part of the package
+interface.
 
 ### 13. Conformance requirements
 

@@ -15,7 +15,7 @@ PIXEL_WIDTH = 16
 PIXEL_HEIGHT = 22
 
 STANDARD = "standard"
-HIGH_CONTRAST = "high_contrast"
+HIGH_CONTRAST = "high-contrast"
 MONOCHROME = "monochrome"
 STYLES = (STANDARD, HIGH_CONTRAST, MONOCHROME)
 

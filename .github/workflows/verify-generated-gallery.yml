@@ -20,13 +20,13 @@ jobs:
         with:
           node-version: '22'
       - name: Compile Java reference implementation
-        run: javac -d out java/bitsquiggles/*.java
+        run: javac -d out java/module-info.java java/bitsquiggles/*.java
       - name: Run Java tests
         run: java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
       - name: Verify generated example gallery
         run: java -cp out bitsquiggles.GalleryGenerator --check
-      - name: Verify generated browser parity fixtures
-        run: java -cp out bitsquiggles.WebFixtureGenerator --check
+      - name: Verify generated conformance fixtures
+        run: java -cp out bitsquiggles.ConformanceFixtureGenerator --check
       - name: Run browser parity tests
         run: node web/bitsquiggle32.test.mjs
       - name: Run MicroPython-compatible tests under CPython

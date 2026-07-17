@@ -9,10 +9,10 @@ devices and look for a difference. A typical example is comparing a BIP-32
 master-key fingerprint shown by a hardware wallet with the fingerprint shown
 by its companion application.
 
-The project provides dependency-free reference implementations for Java 17
-and MicroPython-compatible Python. The algorithm and conformance requirements
-are defined in [SPEC.md](SPEC.md); this README deliberately stays at the
-project and design-rationale level.
+The project provides dependency-free reference implementations for Java 17,
+MicroPython-compatible Python, and JavaScript. The algorithm and conformance
+requirements are defined in [SPEC.md](SPEC.md); this README deliberately stays
+at the project and design-rationale level.
 
 ## Why this project exists
 
@@ -122,9 +122,9 @@ they do not redefine the encoded value.
 
 ### Reference implementations should be easy to audit and port
 
-The Java and MicroPython implementations use no third-party runtime
-dependencies. Both follow the same specification and share a conformance
-vector. This favors transparent, portable code over framework integration.
+The Java, Python, and JavaScript cores use no third-party runtime dependencies.
+They follow the same specification and share conformance coverage. This favors
+transparent, portable code over framework integration.
 
 ## History
 
@@ -149,9 +149,10 @@ BitSquiggles is **experimental and unreleased**.
 
 Current state:
 
-- Java 17 and MicroPython-compatible implementations are present;
-- both implementations include dependency-free test suites;
-- the implementations share a documented conformance vector;
+- Java 17, MicroPython-compatible Python, and JavaScript implementations are
+  present;
+- each implementation includes a dependency-free test suite;
+- the implementations share documented conformance vectors;
 - uniqueness of the canonical connection mask is supported by a structural
   proof, while tests sample the implementation over large input sets;
 - the Java implementation includes an interactive Swing demo;
@@ -198,9 +199,9 @@ it manually after changing rendering behavior, run:
 
 ```bash
 mkdir -p out
-javac -d out java/bitsquiggles/*.java
+javac -d out java/module-info.java java/bitsquiggles/*.java
 java -cp out bitsquiggles.GalleryGenerator
-java -cp out bitsquiggles.WebFixtureGenerator
+java -cp out bitsquiggles.ConformanceFixtureGenerator
 ```
 
 GitHub Actions also verifies the gallery on every push and pull request. The
@@ -208,41 +209,21 @@ GitHub Actions also verifies the gallery on every push and pull request. The
 check for `main`, so stale documentation cannot be merged if a local hook was
 not enabled.
 
-## Trying the reference implementations
+## Reference implementation guides
 
-### Java 17+
+Every port guide uses the same headings: status and scope, include/install,
+create a BitSquiggle, exact-raster rendering, optional smooth rendering,
+conformance testing, package/release notes, and limitations/compatibility.
 
-From the repository root:
+| Port | Primary targets | Guide |
+| --- | --- | --- |
+| Java | Java 17+ | [Java guide](java/README.md) |
+| Python | CPython and MicroPython | [Python and MicroPython guide](micropython/README.md) |
+| JavaScript | Browser, Node, and TypeScript consumers | [JavaScript and TypeScript guide](web/README.md) |
 
-```bash
-mkdir -p out
-javac -d out java/bitsquiggles/*.java
-java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
-java -cp out bitsquiggles.BitSquigglesDemo
-```
-
-The API entry points are `BitSquiggle32.spec(...)` for the abstract visual and
-`BitSquiggle32.pixels(...)` for the exact binary raster. Java accepts every 32-bit
-pattern through `int`; format it as unsigned when displaying it. Arrays inside
-the returned records are mutable and should be treated as immutable outputs or
-copied before being shared with untrusted code.
-
-### MicroPython-compatible Python
-
-Copy [micropython/bitsquiggle32.py](micropython/bitsquiggle32.py) to the target and import
-it as `bitsquiggle32`. The corresponding entry points are `spec(...)` and
-`pixels(...)`.
-
-Run the tests under CPython or MicroPython:
-
-```bash
-cd micropython
-python3 test_bitsquiggle32.py
-```
-
-Native MicroPython targets vary in available RAM. The sampled uniqueness tests
-may need reduced iteration counts on constrained devices; the runtime encoder
-itself uses a small fixed working set.
+The canonical identity and rendering requirements are defined once in the
+[specification](SPEC.md#1-scope-and-contract). Smooth-renderer integration is
+covered by each port guide.
 
 ## Repository guide
 
@@ -252,23 +233,33 @@ SPEC.md                    normative behavior and implementation details
 java/bitsquiggles/
   BitSquiggle32.java       Java reference implementation
   BitSquiggle32Test.java   Java conformance and property tests
+  BitSquiggle32Renderer.java Optional Java2D smooth renderer
   BitSquigglesDemo.java    Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
-  WebFixtureGenerator.java Java-generated browser parity fixtures
+  ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
+java/module-info.java       Source-only Java module descriptor
+java/README.md              Java integration and rendering guide
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
   test_bitsquiggle32.py    Python conformance and property tests
+  README.md                 Python and MicroPython integration guide
 docs/examples/             Generated README example sheets
-web/                       Static GitHub Pages playground and parity tests
+fixtures/v1.json           Versioned cross-language conformance fixture
+pyproject.toml              CPython package metadata for `bitsquiggle32`
+web/                       Static GitHub Pages playground, ESM package, and tests
+  bitsquiggle32-renderer.js Optional Canvas 2D renderer
+  playground.js             Live playground application
+web/README.md               JavaScript and TypeScript integration guide
 .githooks/pre-commit       Regenerates and stages example sheets locally
 .github/workflows/         Verifies generated files, runs tests, and deploys Pages
 ```
 
 When behavior, constants, or formats change, update [SPEC.md](SPEC.md) and the
 conformance tests together. When rendering changes, regenerate
-`docs/examples/` and `web/fixtures.json` with their Java generators as
-described above. Keep project motivation and trade-offs here so the same
-technical rules do not have to be maintained in two documents.
+`docs/examples/` and `fixtures/v1.json` with their Java generators as
+described above. Keep project motivation, safety boundaries, status, and
+trade-offs here; keep normative behavior in the specification; and keep
+language-specific setup and rendering instructions in the port guides.
 
 ## License
 
