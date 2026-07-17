@@ -216,9 +216,9 @@ it manually after changing rendering behavior, run:
 ```bash
 mkdir -p out/core
 javac -d out/core java/core/module-info.java \
-  java/bitsquiggles/BitSquiggle32.java \
-  java/bitsquiggles/GalleryGenerator.java \
-  java/bitsquiggles/ConformanceFixtureGenerator.java
+  java/core/bitsquiggles/BitSquiggle32.java \
+  java/core/bitsquiggles/GalleryGenerator.java \
+  java/core/bitsquiggles/ConformanceFixtureGenerator.java
 java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.GalleryGenerator
 java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator
 ```
@@ -254,13 +254,14 @@ CONTRIBUTING.md            contribution workflow and validation expectations
 AGENTS.md                  concise guide for coding agents
 RELEASING.md               shared versioning and release procedure
 CHANGELOG.md               released and planned change history
-java/bitsquiggles/
-  BitSquiggle32.java       Java reference implementation
-  BitSquiggle32Test.java   Java conformance and property tests
-  BitSquigglesDemo.java    Java Swing demonstration
-  GalleryGenerator.java    Deterministic README example-sheet generator
-  ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
-java/core/module-info.java  Headless core JPMS descriptor
+java/core/
+  module-info.java          Headless core JPMS descriptor
+  bitsquiggles/
+    BitSquiggle32.java       Java reference implementation
+    BitSquiggle32Test.java   Java conformance and property tests
+    BitSquigglesDemo.java    Java Swing demonstration
+    GalleryGenerator.java    Deterministic README example-sheet generator
+    ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
 java/renderer-swing/        Optional Swing/Java2D renderer JPMS module
   bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
                             Smooth and exact renderers

@@ -5,7 +5,7 @@
 // 2. not sue grug
 //
 // Run from the repo root:
-//   javac -d out java/bitsquiggles/*.java \
+//   javac -d out java/core/bitsquiggles/*.java \
 //     java/renderer-swing/bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java \
 //     && java -cp out bitsquiggles.BitSquigglesDemo
 

@@ -23,9 +23,9 @@ jobs:
         run: |
           mkdir -p out/core out/renderer-swing out/test
           javac -d out/core java/core/module-info.java \
-            java/bitsquiggles/BitSquiggle32.java \
-            java/bitsquiggles/GalleryGenerator.java \
-            java/bitsquiggles/ConformanceFixtureGenerator.java
+            java/core/bitsquiggles/BitSquiggle32.java \
+            java/core/bitsquiggles/GalleryGenerator.java \
+            java/core/bitsquiggles/ConformanceFixtureGenerator.java
       - name: Compile optional Java2D renderer module
         run: |
           javac -d out/renderer-swing --module-path out/core java/renderer-swing/module-info.java \
@@ -33,8 +33,8 @@ jobs:
       - name: Compile Java test and demo sources
         run: |
           javac -d out/test -cp out/core:out/renderer-swing \
-            java/bitsquiggles/BitSquiggle32Test.java \
-            java/bitsquiggles/BitSquigglesDemo.java
+            java/core/bitsquiggles/BitSquiggle32Test.java \
+            java/core/bitsquiggles/BitSquigglesDemo.java
       - name: Run Java tests
         run: java -Xmx512m -cp out/core:out/renderer-swing:out/test bitsquiggles.BitSquiggle32Test
       - name: Verify generated example gallery

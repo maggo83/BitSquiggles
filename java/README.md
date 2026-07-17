@@ -19,8 +19,8 @@ together.
 ## 2. Include / install
 
 This port is currently source-only. For a dependency-free JPMS core, compile
-`core/module-info.java` with `bitsquiggles/BitSquiggle32.java`. Copy that core
-source into an application when JPMS is not required.
+`core/module-info.java` with `core/bitsquiggles/BitSquiggle32.java`. Copy that
+core source into an application when JPMS is not required.
 
 The Java module is `io.github.maggo83.bitsquiggles`. It has no third-party
 or desktop dependency. The optional
@@ -104,14 +104,14 @@ From the repository root:
 ```bash
 mkdir -p out/core out/renderer-swing out/test
 javac -d out/core java/core/module-info.java \
-    java/bitsquiggles/BitSquiggle32.java \
-    java/bitsquiggles/GalleryGenerator.java \
-    java/bitsquiggles/ConformanceFixtureGenerator.java
+    java/core/bitsquiggles/BitSquiggle32.java \
+    java/core/bitsquiggles/GalleryGenerator.java \
+    java/core/bitsquiggles/ConformanceFixtureGenerator.java
 javac -d out/renderer-swing --module-path out/core java/renderer-swing/module-info.java \
     java/renderer-swing/bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
 javac -d out/test -cp out/core:out/renderer-swing \
-    java/bitsquiggles/BitSquiggle32Test.java \
-    java/bitsquiggles/BitSquigglesDemo.java
+    java/core/bitsquiggles/BitSquiggle32Test.java \
+    java/core/bitsquiggles/BitSquigglesDemo.java
 java -cp out/core:out/renderer-swing:out/test bitsquiggles.BitSquiggle32Test
 java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.GalleryGenerator --check
 java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator --check
