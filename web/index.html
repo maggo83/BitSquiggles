@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore 32-bit values as unique Bit32Vis connection graphs.">
+  <title>Bit32Vis playground</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <a class="project-link" href="https://github.com/maggo83/bit32vis">Bit32Vis on GitHub</a>
+    <header>
+      <p class="eyebrow">INTERACTIVE PLAYGROUND</p>
+      <h1>See a 32-bit value<br>as a visual identity.</h1>
+      <p class="lede">Every input produces one lossless connection graph. Try a value, inspect its exact native raster, then share the link.</p>
+    </header>
+
+    <form id="value-form" novalidate>
+      <label for="value">Unsigned 32-bit hexadecimal value</label>
+      <div class="controls">
+        <span class="prefix">0x</span>
+        <input id="value" name="value" inputmode="text" autocomplete="off" spellcheck="false" maxlength="10" value="12345678" aria-describedby="input-help">
+        <button type="submit">Visualize</button>
+      </div>
+      <p id="input-help" class="help">Enter up to eight hex digits. The value stays in this browser.</p>
+      <p id="message" class="message" role="alert"></p>
+      <div class="secondary-actions">
+        <button id="random" type="button" class="secondary">Random value</button>
+        <button id="copy-link" type="button" class="secondary">Copy share link</button>
+      </div>
+    </form>
+
+    <section class="details" aria-labelledby="details-title">
+      <h2 id="details-title">Encoding details</h2>
+      <dl>
+        <div><dt>Mixed value</dt><dd id="mixed-value"></dd></div>
+        <div><dt>Preferred mode</dt><dd id="preferred-mode"></dd></div>
+        <div><dt>Rendered mode</dt><dd id="rendered-mode"></dd></div>
+      </dl>
+      <p id="fallback" class="fallback" hidden></p>
+    </section>
+
+    <section class="styles" aria-label="Rendered visualizations">
+      <article class="visual-card" id="standard-card">
+        <div class="card-heading"><h2>Standard</h2><span>smooth + native</span></div>
+        <canvas class="smooth" width="160" height="220" aria-label="Standard smooth visualization"></canvas>
+        <canvas class="raster" width="16" height="22" aria-label="Standard native 16 by 22 pixel raster"></canvas>
+      </article>
+      <article class="visual-card" id="high-contrast-card">
+        <div class="card-heading"><h2>High contrast</h2><span>smooth + native</span></div>
+        <canvas class="smooth" width="160" height="220" aria-label="High contrast smooth visualization"></canvas>
+        <canvas class="raster" width="16" height="22" aria-label="High contrast native 16 by 22 pixel raster"></canvas>
+      </article>
+      <article class="visual-card" id="monochrome-card">
+        <div class="card-heading"><h2>Monochrome</h2><span>smooth + native</span></div>
+        <canvas class="smooth" width="160" height="220" aria-label="Monochrome smooth visualization"></canvas>
+        <canvas class="raster" width="16" height="22" aria-label="Monochrome native 16 by 22 pixel raster"></canvas>
+      </article>
+    </section>
+  </main>
+  <footer>Bit32Vis is a dependency-free experiment in deterministic visual identity.</footer>
+  <script type="module" src="playground.js"></script>
+</body>
+</html>

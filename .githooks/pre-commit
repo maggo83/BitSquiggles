@@ -1,0 +1,9 @@
+#!/bin/sh
+# Keep generated documentation and browser parity fixtures synchronized with Java.
+set -eu
+
+mkdir -p out
+javac -d out java/bit32vis/*.java
+java -cp out bit32vis.GalleryGenerator
+java -cp out bit32vis.WebFixtureGenerator
+git add docs/examples web/fixtures.json
