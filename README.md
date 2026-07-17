@@ -172,6 +172,9 @@ The three columns are Standard, High Contrast, and Monochrome. Every column
 contains an 80×110 smooth rendering above its native, unscaled 16×22 pixel
 raster. The color changes between styles; the encoded geometry does not.
 
+**Try any value in the [interactive playground](https://maggo83.github.io/bit32vis/).**
+It runs entirely in the browser and creates a shareable link for each value.
+
 | Input | Representative behavior | Rendered styles and native rasters |
 | --- | --- | --- |
 | `00000000` | Accepted half-turn (`A+`) | ![Input 00000000 in Standard, High Contrast, and Monochrome](docs/examples/00000000.svg) |
@@ -197,6 +200,7 @@ it manually after changing rendering behavior, run:
 mkdir -p out
 javac -d out java/bit32vis/*.java
 java -cp out bit32vis.GalleryGenerator
+java -cp out bit32vis.WebFixtureGenerator
 ```
 
 GitHub Actions also verifies the gallery on every push and pull request. The
@@ -250,23 +254,25 @@ java/bit32vis/
   Bit32VisTest.java        Java conformance and property tests
   DemoApp.java             Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
+  WebFixtureGenerator.java Java-generated browser parity fixtures
 micropython/
   bit32vis.py              MicroPython-compatible implementation
   test_bit32vis.py         Python conformance and property tests
 docs/examples/             Generated README example sheets
+web/                       Static GitHub Pages playground and parity tests
 .githooks/pre-commit       Regenerates and stages example sheets locally
-.github/workflows/         Verifies generated sheets and test suites in CI
+.github/workflows/         Verifies generated files, runs tests, and deploys Pages
 ```
 
 When behavior, constants, or formats change, update [SPEC.md](SPEC.md) and the
 conformance tests together. When rendering changes, regenerate
-`docs/examples/` with `GalleryGenerator` as described above. Keep project
-motivation and trade-offs here so the same technical rules do not have to be
-maintained in two documents.
+`docs/examples/` and `web/fixtures.json` with their Java generators as
+described above. Keep project motivation and trade-offs here so the same
+technical rules do not have to be maintained in two documents.
 
 ## License
 
-The files retain the Grug 2-Clause license used during the experiment:
+The files retain the Grug 2-Clause license:
 
 1. do what want
 2. not sue grug
