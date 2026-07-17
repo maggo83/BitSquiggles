@@ -1,13 +1,17 @@
 # BitSquiggle32 for Java 17+
 
+← Back to the [BitSquiggles project overview](../README.md).
+
 ## 1. Status and scope
 
 This is the dependency-free Java 17+ reference implementation of BitSquiggle32.
 It provides the canonical visual specification and exact $16\times22$ binary
 raster. It does not derive fingerprints or make security decisions from them.
 
-The public core is `bitsquiggles.BitSquiggle32`. `BitSquigglesDemo` is an
-optional Swing presentation example, not a core dependency.
+The public core is `bitsquiggles.BitSquiggle32`. The optional
+`BitSquigglesSwingRenderer` renders smooth Java2D output, while
+`BitSquigglesDemo` is a separate Swing application that wires controls, views,
+and both renderers together.
 
 ## 2. Include / install
 
@@ -16,9 +20,9 @@ This port is currently source-only. Copy `module-info.java` and the
 alongside an application.
 
 The Java module is `io.github.maggo83.bitsquiggles`. It has no third-party
-runtime dependencies. The bundled Swing demo means the module requires the
-standard JDK `java.desktop` module; applications using only the core do not need
-to invoke the demo.
+runtime dependencies. The optional Swing renderer and demo use the standard JDK
+`java.desktop` module. An application that needs only the core can include
+`BitSquiggle32.java` without either optional class.
 
 ## 3. Create a BitSquiggle
 
@@ -60,9 +64,17 @@ required.
 
 ## 5. Optional smooth rendering
 
-Run `BitSquigglesDemo` to inspect the bundled Swing smooth rendering beside the
-exact raster. Smooth rendering is a presentation option only; the canonical
-identity is the connection mask and exact raster.
+Use the standalone `BitSquigglesSwingRenderer` when an application needs smooth
+Java2D output:
+
+```java
+BitSquigglesSwingRenderer.paint(graphics, visual, width, height);
+```
+
+The renderer depends on Java2D but the `BitSquiggle32` core does not. The
+separate `BitSquigglesDemo` application demonstrates renderer use alongside
+input controls and exact raster views. Smooth rendering is a presentation
+option only; the canonical identity is the connection mask and exact raster.
 
 ## 6. Test conformance
 
@@ -81,9 +93,9 @@ conformance fixture.
 
 ## 7. Package / release notes
 
-There is no published Maven artifact yet. The source module is deliberately
-package-manager-neutral while the public API stabilizes. Consumers can vendor
-the source without a build-plugin or runtime dependency.
+Consume this port as source today: copy the core source into an application or
+add the source module to its build. The core has no third-party runtime
+dependency; the optional Java2D renderer and Swing demo use standard JDK APIs.
 
 ## 8. Limitations and compatibility
 

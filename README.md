@@ -232,6 +232,7 @@ SPEC.md                    normative behavior and implementation details
 java/bitsquiggles/
   BitSquiggle32.java       Java reference implementation
   BitSquiggle32Test.java   Java conformance and property tests
+  BitSquigglesSwingRenderer.java Optional Java2D smooth renderer
   BitSquigglesDemo.java    Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
   ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
@@ -245,6 +246,8 @@ docs/examples/             Generated README example sheets
 fixtures/v1.json           Versioned cross-language conformance fixture
 pyproject.toml              CPython package metadata for `bitsquiggle32`
 web/                       Static GitHub Pages playground, ESM package, and tests
+  bitsquiggles-canvas-renderer.js Optional Canvas 2D renderer
+  playground.js             Live playground application
 web/README.md               JavaScript and TypeScript integration guide
 .githooks/pre-commit       Regenerates and stages example sheets locally
 .github/workflows/         Verifies generated files, runs tests, and deploys Pages

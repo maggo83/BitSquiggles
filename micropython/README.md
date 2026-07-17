@@ -1,5 +1,7 @@
 # BitSquiggle32 for Python and MicroPython
 
+← Back to the [BitSquiggles project overview](../README.md).
+
 ## 1. Status and scope
 
 This dependency-free module is the BitSquiggle32 reference implementation for
@@ -58,6 +60,11 @@ This port intentionally contains no graphics-framework renderer. Use the exact
 raster on constrained displays, or build a target-specific smooth renderer from
 the `spec()` connection/cell data. A smooth renderer is a presentation layer and
 must not redefine the canonical connection mask or raster.
+
+For CPython applications, suitable optional renderer targets include Pillow for
+image output, Tkinter for a standard-library desktop canvas, and pygame for an
+interactive display. None is required or bundled: a renderer should remain a
+separate integration layer so the core stays MicroPython-compatible.
 
 ## 6. Test conformance
 

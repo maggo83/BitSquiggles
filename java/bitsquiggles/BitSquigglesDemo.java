@@ -13,7 +13,6 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -226,7 +225,7 @@ public class BitSquigglesDemo {
             if (spec == null) return;
             Graphics2D g2 = (Graphics2D) g.create();
             try {
-                paintVis(g2, spec, getWidth(), getHeight());
+                BitSquigglesSwingRenderer.paint(g2, spec, getWidth(), getHeight());
             } finally {
                 g2.dispose();
             }
@@ -275,87 +274,6 @@ public class BitSquigglesDemo {
                 g2.dispose();
             }
         }
-    }
-
-    // =========================================================================
-    // Paint logic — continuous 16×22 viewBox matching the exact pixel topology.
-    // =========================================================================
-
-    static void paintVis(Graphics2D g2, BitSquiggle32.VisSpec spec, int width, int height) {
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,   RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING,      RenderingHints.VALUE_RENDER_QUALITY);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-
-        double scale = Math.min(width / 16.0, height / 22.0);
-        double w  = 16 * scale, h = 22 * scale;
-        double ox = (width  - w) / 2.0, oy = (height - h) / 2.0;
-
-        // Background tile
-        g2.setColor(parseHex(spec.background().hex()));
-        g2.fill(new RoundRectangle2D.Double(ox, oy, w, h,
-                2.0 * scale, 2.0 * scale));
-
-        // Build one union before painting. Rendering overlapping antialiased
-        // primitives separately can leave hairline background seams.
-        Area foreground = new Area();
-        for (int row = 0; row < BitSquiggle32.ROWS; row++) {
-            for (int column = 0; column < BitSquiggle32.COLUMNS; column++) {
-                if (spec.cells()[row][column] == 0) continue;
-                double x = ox + (1 + column * 3) * scale;
-                double y = oy + (1 + row * 3) * scale;
-                // The corner radius is half the cell width. Consequently, a
-                // terminal cell forms a true semicircular end cap.
-                foreground.add(new Area(new RoundRectangle2D.Double(
-                        x, y, 2 * scale, 2 * scale, 2 * scale, 2 * scale)));
-            }
-        }
-
-        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
-        for (int i = 0; i < edges.length; i++) {
-            if (spec.connections()[i] == 0) continue;
-            BitSquiggle32.Edge edge = edges[i];
-            double x = ox + (1 + edge.startColumn() * 3) * scale;
-            double y = oy + (1 + edge.startRow() * 3) * scale;
-            if (edge.startRow() == edge.endRow()) {
-                foreground.add(new Area(new Rectangle2D.Double(
-                        x + scale, y, 3 * scale, 2 * scale)));
-            } else {
-                foreground.add(new Area(new Rectangle2D.Double(
-                        x, y + scale, 2 * scale, 3 * scale)));
-            }
-        }
-
-        // A four-cell cycle closes its one-unit central junction.
-        for (int row = 0; row < BitSquiggle32.ROWS - 1; row++) {
-            for (int column = 0; column < BitSquiggle32.COLUMNS - 1; column++) {
-                if (edgeValue(spec, row, column, row, column + 1) == 1
-                        && edgeValue(spec, row + 1, column, row + 1, column + 1) == 1
-                        && edgeValue(spec, row, column, row + 1, column) == 1
-                        && edgeValue(spec, row, column + 1, row + 1, column + 1) == 1) {
-                    foreground.add(new Area(new Rectangle2D.Double(
-                            ox + (3 + column * 3) * scale,
-                            oy + (3 + row * 3) * scale,
-                            scale, scale)));
-                }
-            }
-        }
-
-        g2.setColor(parseHex(spec.foreground().hex()));
-        g2.fill(foreground);
-    }
-
-    private static int edgeValue(
-            BitSquiggle32.VisSpec spec, int startRow, int startColumn,
-            int endRow, int endColumn) {
-        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
-        for (int i = 0; i < edges.length; i++) {
-            BitSquiggle32.Edge edge = edges[i];
-            if (edge.startRow() == startRow && edge.startColumn() == startColumn
-                    && edge.endRow() == endRow && edge.endColumn() == endColumn) {
-                return spec.connections()[i];
-            }
-        }
-        return 0;
     }
 
     // =========================================================================

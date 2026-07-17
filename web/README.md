@@ -1,5 +1,8 @@
 # BitSquiggle32 for JavaScript and TypeScript
 
+← Back to the [BitSquiggles project overview](../README.md). Try the live
+[BitSquiggles playground](https://maggo83.github.io/BitSquiggles/).
+
 ## 1. Status and scope
 
 This directory contains both the BitSquiggles playground and the dependency-free
@@ -23,6 +26,8 @@ npm install /path/to/BitSquiggles/web
 
 The package has no runtime dependencies or build step. TypeScript declarations
 are optional editor support; JavaScript is the executable source of truth.
+The live playground is available at
+[https://maggo83.github.io/BitSquiggles/](https://maggo83.github.io/BitSquiggles/).
 
 ## 3. Create a BitSquiggle
 
@@ -60,9 +65,20 @@ required. For larger output, use nearest-neighbor scaling.
 
 ## 5. Optional smooth rendering
 
-The playground demonstrates a smooth browser presentation derived from the
-connection and cell data. Smooth rendering is optional and must not redefine
-the canonical connection mask or exact raster.
+The optional Canvas 2D renderer is separate from both the core and the
+playground application. Import it when a browser application needs the bundled
+smooth presentation:
+
+```js
+import { drawSmooth } from "bitsquiggles/canvas";
+
+drawSmooth(canvas, visual);
+```
+
+`playground.js` is only the live-demo application: it owns the form, URL state,
+and page updates, then delegates drawing to the Canvas renderer. Smooth
+rendering is optional and must not redefine the canonical connection mask or
+exact raster.
 
 ## 6. Test conformance
 
@@ -75,9 +91,9 @@ checks every shared vector.
 
 ## 7. Package / release notes
 
-Run `npm pack --dry-run` to inspect the exact package artifact before
-publishing. The public package name is `bitsquiggles`; package metadata exports
-the ESM core and its optional TypeScript declarations.
+The `bitsquiggles` package exposes the core at `bitsquiggles` and the optional
+Canvas renderer at `bitsquiggles/canvas`. Both include TypeScript declarations.
+Use the core alone when a different graphics toolkit is preferred.
 
 ## 8. Limitations and compatibility
 

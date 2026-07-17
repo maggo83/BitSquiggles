@@ -4,6 +4,8 @@
 
 package bitsquiggles;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,6 +26,7 @@ public final class BitSquiggle32Test {
         testSlashWrapRegression();
         testGoldenVector();
         testDemoHexParsing();
+        testSwingRenderer();
         System.out.println("BitSquiggles Java tests passed (" + checks + " checks)");
     }
 
@@ -196,6 +199,18 @@ public final class BitSquiggle32Test {
         check(BitSquigglesDemo.parseBits("0xFFFFFFFF") == -1, "parse unsigned max with prefix");
         expectFailure(() -> BitSquigglesDemo.parseBits("123"), "reject short input");
         expectFailure(() -> BitSquigglesDemo.parseBits("zzzzzzzz"), "reject non-hex input");
+    }
+
+    private static void testSwingRenderer() {
+        BufferedImage image = new BufferedImage(160, 220, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            BitSquigglesSwingRenderer.paint(
+                    graphics, BitSquiggle32.spec(0x12345678), image.getWidth(), image.getHeight());
+        } finally {
+            graphics.dispose();
+        }
+        check(image.getRGB(image.getWidth() / 2, 1) != 0, "Swing renderer paints background");
     }
 
     private static long pack(byte[] connections) {
