@@ -185,6 +185,7 @@ Current state:
 - uniqueness of the canonical connection mask is supported by a structural
   proof, while tests sample the implementation over large input sets;
 - the Java implementation includes an interactive Swing demo;
+- the MicroPython port includes optional LVGL exact-raster and smooth renderers;
 - no independent security, cryptographic, accessibility, or usability review
   has been completed;
 - no controlled user study has established how reliably people notice
@@ -270,6 +271,7 @@ c/
   README.md                 C99 integration guide
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
+  bitsquiggles_renderer_lvgl.py Optional LVGL exact-raster and smooth renderers
   test_bitsquiggle32.py    Python conformance and property tests
   README.md                 Python and MicroPython integration guide
 docs/examples/             Generated README example sheets

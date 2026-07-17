@@ -13,7 +13,9 @@ the shared encoding contract lives in the [specification](../SPEC.md).
 ## 2. Include / install
 
 For MicroPython, copy `bitsquiggle32.py` to the device and import it directly.
-It uses only core language features plus `math`.
+It uses only core language features plus `math`. For LVGL targets, also vendor
+`bitsquiggles_renderer_lvgl.py`; it is optional and imports `lvgl` only when
+the renderer is used.
 
 For CPython, install the same module from a checkout:
 
@@ -56,9 +58,24 @@ The exact dimensions and rendering rules are defined in the
 
 ## 5. Optional smooth rendering
 
-This port intentionally contains no graphics-framework renderer. Use the exact
-raster on constrained displays, or build a target-specific smooth renderer from
-the `spec()` connection/cell data.
+The optional `bitsquiggles_renderer_lvgl.py` module supports LVGL targets
+without adding an LVGL dependency to the core. It exposes `render_raster()` for
+an exact integer-scaled RGB565 image and `render_smooth()` for a rounded,
+antialiased canvas presentation:
+
+```python
+import bitsquiggle32
+import bitsquiggles_renderer_lvgl as lvgl_renderer
+
+visual = bitsquiggle32.spec(0x12345678, bitsquiggle32.HIGH_CONTRAST)
+raster = bitsquiggle32.pixels(0x12345678, bitsquiggle32.HIGH_CONTRAST)
+lvgl_renderer.render_raster(parent, raster, scale=2)
+lvgl_renderer.render_smooth(parent, visual, scale=4)
+```
+
+Call `clear_cache()` after deleting renderer parents. The exact renderer is the
+portable baseline; the smooth renderer is target presentation and must preserve
+the selected and unselected connections.
 
 For CPython applications, suitable optional renderer targets include Pillow for
 image output, Tkinter for a standard-library desktop canvas, and pygame for an
@@ -97,6 +114,7 @@ loops on constrained devices if needed. See the
 | CPython package | Python 3.8+ | Declared in package metadata; CI uses Python 3.12. |
 | CPython conformance | Python 3.12 in CI | Consumes every shared fixture vector. |
 | MicroPython core | Targets with `math` support | Vendor the single core file; no device-specific CI target is claimed. |
+| LVGL renderer | LVGL 9 MicroPython targets | Optional vendored module; validate exact and smooth output on the target display. |
 | MicroPython testing | Target-dependent | Run the property harness on-device as resources permit; full fixture parity runs on the host. |
 
 ## 9. License

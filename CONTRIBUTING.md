@@ -24,6 +24,8 @@ Thanks for helping improve BitSquiggles.
 Run the checks specified by the port guides and the repository verification
 workflow. At minimum, verify the Java tests and generated artifacts, the Python
 fixture/property tests, and the JavaScript core/playground tests.
+For an LVGL renderer change, also verify exact and smooth output in the target
+simulator and on representative hardware.
 
 The local Git hook can regenerate generated outputs:
 
