@@ -208,42 +208,100 @@ GitHub Actions also verifies the gallery on every push and pull request. The
 check for `main`, so stale documentation cannot be merged if a local hook was
 not enabled.
 
-## Trying the reference implementations
+## Include, use, render, and test
+
+Every implementation exposes the same two layers:
+
+- `spec` / `visualize` returns the connection graph, display colors, selected
+  mode, and fallback metadata;
+- `pixels` returns the exact $16\times22$ binary raster plus foreground and
+  background colors.
+
+Use the raster when equality comparison must remain exact. A renderer may scale
+each raster pixel by an integer factor, but it must not antialias, interpolate,
+or alter selected pixels. The smooth Swing and browser renderings are optional
+presentation layers; they do not define the encoded value.
 
 ### Java 17+
 
-From the repository root:
+#### Include and use
+
+For source-level use, copy `java/module-info.java` and
+`java/bitsquiggles/BitSquiggle32.java` into a Java 17+ project. The source-only
+module is named `io.github.maggo83.bitsquiggles`; it has no third-party
+dependencies. Java accepts every 32-bit bit pattern through `int`; parse and
+format values as unsigned where needed.
+
+```java
+import bitsquiggles.BitSquiggle32;
+
+int bits = (int) Long.parseLong("12345678", 16);
+BitSquiggle32.VisSpec visual = BitSquiggle32.spec(bits);
+BitSquiggle32.PixelGrid raster = BitSquiggle32.pixels(bits);
+
+System.out.println(visual.actualMode().label());
+System.out.println(raster.foreground().hex());
+```
+
+Arrays held by the Java records are mutable. Treat them as immutable outputs or
+copy them before sharing them with untrusted code.
+
+#### Render the exact raster
+
+`raster.pixels()` is row-major, with `0` for background and `1` for foreground.
+Render it directly with an integer `scale`:
+
+```java
+for (int y = 0; y < raster.height(); y++) {
+    for (int x = 0; x < raster.width(); x++) {
+        boolean on = raster.pixels()[y * raster.width() + x] != 0;
+        // Fill one scale-by-scale rectangle using raster foreground/background.
+    }
+}
+```
+
+`BitSquigglesDemo` is a Swing presentation example for inspecting smooth and
+exact raster output; it is not required by the core API.
+
+#### Compile and test
 
 ```bash
 mkdir -p out
 javac -d out java/module-info.java java/bitsquiggles/*.java
-java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
+java --module-path out --module io.github.maggo83.bitsquiggles/bitsquiggles.BitSquiggle32Test
 java -cp out bitsquiggles.BitSquigglesDemo
 ```
 
-The API entry points are `BitSquiggle32.spec(...)` for the abstract visual and
-`BitSquiggle32.pixels(...)` for the exact binary raster. Java accepts every 32-bit
-pattern through `int`; format it as unsigned when displaying it. Arrays inside
-the returned records are mutable and should be treated as immutable outputs or
-copied before being shared with untrusted code.
-
-The source-only Java module is named `io.github.maggo83.bitsquiggles`. Add the
-`java/` directory to a Java 17+ module path, or copy `java/module-info.java` and
-`java/bitsquiggles/` into an existing module.
+The test harness exercises the core properties. To verify checked-in generated
+files, also run `GalleryGenerator --check` and
+`ConformanceFixtureGenerator --check` as shown in [Keeping examples
+synchronized](#keeping-examples-synchronized).
 
 ### MicroPython-compatible Python
 
-Copy [micropython/bitsquiggle32.py](micropython/bitsquiggle32.py) to the target and import
-it as `bitsquiggle32`. The corresponding entry points are `spec(...)` and
-`pixels(...)`.
+#### Include and use
 
-For CPython projects, install the same dependency-free module from a checkout:
+For MicroPython, copy [micropython/bitsquiggle32.py](micropython/bitsquiggle32.py)
+to the target and import it as `bitsquiggle32`. For CPython, install the same
+dependency-free module from a checkout:
 
 ```bash
 python3 -m pip install .
 ```
 
-Run the tests under CPython or MicroPython:
+```python
+import bitsquiggle32
+
+visual = bitsquiggle32.spec(0x12345678)
+raster = bitsquiggle32.pixels(0x12345678)
+print(visual["actual_mode"], raster["foreground"]["hex"])
+```
+
+`raster["pixels"]` is a row-major `bytearray`; render each `0` or `1` as one
+background or foreground cell. The `width` and `height` fields are always `16`
+and `22` for BitSquiggle32.
+
+#### Test
 
 ```bash
 cd micropython
@@ -256,15 +314,46 @@ itself uses a small fixed working set.
 
 ### JavaScript / TypeScript
 
+#### Include and use
+
 The browser core in [web/bitsquiggle32.js](web/bitsquiggle32.js) is a plain ESM
-package with no runtime dependencies or build step. It exports `visualize()`,
-`pixels()`, `parseHex()`, and `formatHex()`. The accompanying
-`bitsquiggle32.d.ts` is optional TypeScript editor support; JavaScript remains
-the executable source.
+package with no runtime dependencies or build step. After publication, install
+`bitsquiggles` and import it as ESM. Until then, import the local module by its
+relative path.
+
+```js
+import { parseHex, visualize } from "bitsquiggles";
+
+const visual = visualize(parseHex("12345678"));
+console.log(visual.actualMode, visual.foreground);
+```
+
+The accompanying `bitsquiggle32.d.ts` supplies optional TypeScript editor
+support; JavaScript remains the executable source.
+
+#### Render the exact raster
+
+`visual.pixels` is a `Uint8Array` in row-major order. This canvas example keeps
+the native raster exact:
+
+```js
+const context = canvas.getContext("2d");
+for (let y = 0; y < 22; y += 1) {
+  for (let x = 0; x < 16; x += 1) {
+    context.fillStyle = visual.pixels[y * 16 + x]
+      ? visual.foreground : visual.background;
+    context.fillRect(x, y, 1, 1);
+  }
+}
+```
+
+Scale the canvas only with nearest-neighbor pixel rendering when a larger
+display is needed.
+
+#### Test and inspect the package
 
 From the `web/` directory, run `npm pack --dry-run` to inspect the publishable
-artifact. After publication, consumers can install the `bitsquiggles` package
-and import it as ESM.
+artifact and `npm test` to run all shared conformance vectors.
 
 ## Repository guide
 
