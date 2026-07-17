@@ -168,6 +168,10 @@ Further iterations moved information from independent cells to connections,
 introduced reversible mixing, and added canonical handling of overlapping copy
 families.
 
+Thanks go out to Christoph Ono for starting Hallmarks and early exchange,
+Francis Pouliot for enthusiastic feedback, and Kevin Loaec and Orangesurf
+for the critique and pointers to existing other approaches like LifeHash!
+
 ## Status
 
 BitSquiggles is **experimental and unreleased**.
