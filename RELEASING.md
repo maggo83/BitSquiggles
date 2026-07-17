@@ -29,6 +29,8 @@ published yet.
 2. Run the repository verification workflow checks locally or in CI: Java core,
    renderer/demo tests, generated gallery, generated fixture, CPython/MicroPython
    harness, JavaScript core test, playground smoke test, and package dry run.
+  When changing the optional LVGL renderer, also validate exact and smooth
+  output in an LVGL simulator and on representative hardware.
 3. Regenerate and review `docs/examples/` and `fixtures/v1.json` with the Java
    generators when applicable.
 4. Confirm that every maintained core port consumes the current fixture in its
@@ -44,7 +46,8 @@ published yet.
 - Java core, optional renderers, and demos are independently selectable
   artifacts/modules; a core consumer must not acquire renderer dependencies.
 - The Python distribution packages the same core source used for MicroPython
-  vendoring.
+  vendoring. The optional LVGL renderer is separately vendored source and is
+  not part of the dependency-free CPython package.
 - The JavaScript package publishes the dependency-free ESM core and explicitly
   named optional renderer subpaths.
 - The C99 distribution consists of the dependency-free header, source, and

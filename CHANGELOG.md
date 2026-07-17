@@ -7,6 +7,7 @@ rules are defined in [RELEASING.md](RELEASING.md).
 
 - No published release artifacts yet.
 - Added a dependency-free C99 core with shared-fixture conformance coverage.
+- Added optional MicroPython LVGL exact-raster and smooth renderers.
 
 ## 0.1.0 — planned initial release
 
