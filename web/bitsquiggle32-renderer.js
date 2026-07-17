@@ -1,4 +1,4 @@
-// BitSquiggles — optional Canvas 2D presentation renderer.
+// BitSquiggles — optional Canvas 2D renderer.
 // Grug 2-Clause License: do what want; not sue grug.
 
 import { EDGES, PIXEL_HEIGHT, PIXEL_WIDTH } from "./bitsquiggle32.js";
@@ -9,8 +9,8 @@ function roundedRect(context, x, y, width, height, radius) {
   context.fill();
 }
 
-/** Paint a smooth Canvas 2D presentation without changing the canonical raster. */
-export function drawSmooth(canvas, visual) {
+/** Paint a smooth Canvas 2D presentation from a canonical visual specification. */
+export function renderSmooth(canvas, visual) {
   const context = canvas.getContext("2d");
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = visual.background;
@@ -39,13 +39,13 @@ export function drawSmooth(canvas, visual) {
   }
 }
 
-/** Paint the exact native raster with one Canvas pixel per canonical raster pixel. */
-export function drawRaster(canvas, visual) {
+/** Paint an exact native raster from a canonical pixel grid. */
+export function renderRaster(canvas, grid) {
   const context = canvas.getContext("2d");
-  context.fillStyle = visual.background;
+  context.fillStyle = grid.background;
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = visual.foreground;
-  visual.pixels.forEach((pixel, index) => {
+  context.fillStyle = grid.foreground;
+  grid.pixels.forEach((pixel, index) => {
     if (pixel) context.fillRect(index % PIXEL_WIDTH, Math.floor(index / PIXEL_WIDTH), 1, 1);
   });
 }

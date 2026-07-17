@@ -9,10 +9,10 @@ devices and look for a difference. A typical example is comparing a BIP-32
 master-key fingerprint shown by a hardware wallet with the fingerprint shown
 by its companion application.
 
-The project provides dependency-free reference implementations for Java 17
-and MicroPython-compatible Python. The algorithm and conformance requirements
-are defined in [SPEC.md](SPEC.md); this README deliberately stays at the
-project and design-rationale level.
+The project provides dependency-free reference implementations for Java 17,
+MicroPython-compatible Python, and JavaScript. The algorithm and conformance
+requirements are defined in [SPEC.md](SPEC.md); this README deliberately stays
+at the project and design-rationale level.
 
 ## Why this project exists
 
@@ -122,9 +122,9 @@ they do not redefine the encoded value.
 
 ### Reference implementations should be easy to audit and port
 
-The Java and MicroPython implementations use no third-party runtime
-dependencies. Both follow the same specification and share a conformance
-vector. This favors transparent, portable code over framework integration.
+The Java, Python, and JavaScript cores use no third-party runtime dependencies.
+They follow the same specification and share conformance coverage. This favors
+transparent, portable code over framework integration.
 
 ## History
 
@@ -149,9 +149,10 @@ BitSquiggles is **experimental and unreleased**.
 
 Current state:
 
-- Java 17 and MicroPython-compatible implementations are present;
-- both implementations include dependency-free test suites;
-- the implementations share a documented conformance vector;
+- Java 17, MicroPython-compatible Python, and JavaScript implementations are
+  present;
+- each implementation includes a dependency-free test suite;
+- the implementations share documented conformance vectors;
 - uniqueness of the canonical connection mask is supported by a structural
   proof, while tests sample the implementation over large input sets;
 - the Java implementation includes an interactive Swing demo;
@@ -220,9 +221,9 @@ conformance testing, package/release notes, and limitations/compatibility.
 | Python | CPython and MicroPython | [Python and MicroPython guide](micropython/README.md) |
 | JavaScript | Browser, Node, and TypeScript consumers | [JavaScript and TypeScript guide](web/README.md) |
 
-The canonical identity is always the connection mask and exact $16\times22$
-raster. Smooth renderings are optional presentation layers and never redefine
-the encoded value.
+The canonical identity and rendering requirements are defined once in the
+[specification](SPEC.md#1-scope-and-contract). Smooth-renderer integration is
+covered by each port guide.
 
 ## Repository guide
 
@@ -232,7 +233,7 @@ SPEC.md                    normative behavior and implementation details
 java/bitsquiggles/
   BitSquiggle32.java       Java reference implementation
   BitSquiggle32Test.java   Java conformance and property tests
-  BitSquigglesSwingRenderer.java Optional Java2D smooth renderer
+  BitSquiggle32Renderer.java Optional Java2D smooth renderer
   BitSquigglesDemo.java    Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
   ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
@@ -246,7 +247,7 @@ docs/examples/             Generated README example sheets
 fixtures/v1.json           Versioned cross-language conformance fixture
 pyproject.toml              CPython package metadata for `bitsquiggle32`
 web/                       Static GitHub Pages playground, ESM package, and tests
-  bitsquiggles-canvas-renderer.js Optional Canvas 2D renderer
+  bitsquiggle32-renderer.js Optional Canvas 2D renderer
   playground.js             Live playground application
 web/README.md               JavaScript and TypeScript integration guide
 .githooks/pre-commit       Regenerates and stages example sheets locally
@@ -256,8 +257,9 @@ web/README.md               JavaScript and TypeScript integration guide
 When behavior, constants, or formats change, update [SPEC.md](SPEC.md) and the
 conformance tests together. When rendering changes, regenerate
 `docs/examples/` and `fixtures/v1.json` with their Java generators as
-described above. Keep project motivation and trade-offs here so the same
-technical rules do not have to be maintained in two documents.
+described above. Keep project motivation, safety boundaries, status, and
+trade-offs here; keep normative behavior in the specification; and keep
+language-specific setup and rendering instructions in the port guides.
 
 ## License
 

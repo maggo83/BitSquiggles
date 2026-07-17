@@ -1,5 +1,5 @@
-import { STYLES, formatHex, parseHex, visualize } from "./bitsquiggle32.js";
-import { drawRaster, drawSmooth } from "./bitsquiggles-canvas-renderer.js";
+import { STYLES, formatHex, parseHex, pixels, spec } from "./bitsquiggle32.js";
+import { renderRaster, renderSmooth } from "./bitsquiggle32-renderer.js";
 
 const form = document.querySelector("#value-form");
 const input = document.querySelector("#value");
@@ -11,7 +11,7 @@ const cards = new Map(STYLES.map((style) => [style, document.querySelector(`#${s
 function update(value) {
   const hex = formatHex(value);
   input.value = hex;
-  const standard = visualize(value);
+  const standard = spec(value);
   document.querySelector("#mixed-value").textContent = `0x${formatHex(standard.mixed)}`;
   document.querySelector("#preferred-mode").textContent = standard.preferredMode;
   document.querySelector("#rendered-mode").textContent = standard.actualMode;
@@ -19,12 +19,13 @@ function update(value) {
   fallback.hidden = !standard.fallback;
   fallback.textContent = "The preferred symmetry could not encode this value uniquely, so BitSquiggle32 used A|.";
   STYLES.forEach((style) => {
-    const visual = visualize(value, style);
+    const visual = spec(value, style);
+    const raster = pixels(value, style);
     const card = cards.get(style);
     card.style.setProperty("--background", visual.background);
     card.style.setProperty("--foreground", visual.foreground);
-    drawSmooth(card.querySelector(".smooth"), visual);
-    drawRaster(card.querySelector(".raster"), visual);
+    renderSmooth(card.querySelector(".smooth"), visual);
+    renderRaster(card.querySelector(".raster"), raster);
   });
   const url = new URL(window.location.href);
   url.search = `value=${hex}`;

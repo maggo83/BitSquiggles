@@ -1,14 +1,14 @@
 # BitSquiggle32 for JavaScript and TypeScript
 
-← Back to the [BitSquiggles project overview](../README.md). Try the live
-[BitSquiggles playground](https://maggo83.github.io/BitSquiggles/).
+← Back to the [BitSquiggles project overview](../README.md). Read the
+[normative specification](../SPEC.md) for behavior shared by every port.
 
 ## 1. Status and scope
 
-This directory contains both the BitSquiggles playground and the dependency-free
-BitSquiggle32 ESM core. The core produces the canonical visual specification and
-exact $16\times22$ binary raster. It does not derive fingerprints or make
-security decisions from them.
+This guide explains how to use the dependency-free ESM core, its optional Canvas
+renderer, and the live playground. Project purpose, safety boundaries, and
+release status live in the [project overview](../README.md); the shared encoding
+contract lives in the [specification](../SPEC.md).
 
 ## 2. Include / install
 
@@ -32,17 +32,18 @@ The live playground is available at
 ## 3. Create a BitSquiggle
 
 ```js
-import { formatHex, parseHex, visualize } from "bitsquiggles";
+import { formatHex, parseHex, pixels, spec } from "bitsquiggles";
 
-const visual = visualize(parseHex("12345678"));
+const input = parseHex("12345678");
+const visual = spec(input);
+const raster = pixels(input);
 console.log(formatHex(visual.mixed), visual.actualMode);
 ```
 
-`visualize()` returns the input, mixed value, connections, active cells, exact
-raster, mode/fallback metadata, and foreground/background colors.
-`pixels(connections)` returns an exact raster for a canonical connection mask.
-`parseHex()` accepts one to eight hexadecimal digits; `formatHex()` returns
-eight uppercase hexadecimal digits.
+Both `spec()` and `pixels()` accept the same signed 32-bit bit pattern and
+optional style. The API return values, styles, constants, and hexadecimal
+handling are defined in the
+[JavaScript API mapping](../SPEC.md#123-javascript-and-typescript).
 
 ## 4. Render the exact raster
 
@@ -60,8 +61,9 @@ for (let y = 0; y < 22; y += 1) {
 }
 ```
 
-Do not smooth, interpolate, or alter raster pixels when exact comparison is
-required. For larger output, use nearest-neighbor scaling.
+The exact dimensions and rendering rules are defined in the
+[normative raster specification](../SPEC.md#10-exact-binary-renderer). For
+larger output, use nearest-neighbor scaling.
 
 ## 5. Optional smooth rendering
 
@@ -70,15 +72,18 @@ playground application. Import it when a browser application needs the bundled
 smooth presentation:
 
 ```js
-import { drawSmooth } from "bitsquiggles/canvas";
+import { renderRaster, renderSmooth } from "bitsquiggles/renderer";
 
-drawSmooth(canvas, visual);
+renderSmooth(canvas, visual);
+renderRaster(rasterCanvas, raster);
 ```
 
 `playground.js` is only the live-demo application: it owns the form, URL state,
-and page updates, then delegates drawing to the Canvas renderer. Smooth
-rendering is optional and must not redefine the canonical connection mask or
-exact raster.
+and page updates, then delegates drawing to the Canvas renderer. Follow the
+shared [smooth-rendering constraints](../SPEC.md#11-smooth-renderer).
+`renderSmooth()` paints the smooth presentation; `renderRaster()` paints the
+exact native raster. `PIXEL_WIDTH` and `PIXEL_HEIGHT` are also exported by this
+optional renderer.
 
 ## 6. Test conformance
 
@@ -87,21 +92,20 @@ npm test
 ```
 
 The test suite reads the versioned Java-generated conformance fixture and
-checks every shared vector.
+checks every shared vector. The complete conformance requirements are in the
+[specification](../SPEC.md#13-conformance-requirements).
 
 ## 7. Package / release notes
 
 The `bitsquiggles` package exposes the core at `bitsquiggles` and the optional
-Canvas renderer at `bitsquiggles/canvas`. Both include TypeScript declarations.
+Canvas renderer at `bitsquiggles/renderer`. Both include TypeScript declarations.
 Use the core alone when a different graphics toolkit is preferred.
 
 ## 8. Limitations and compatibility
 
-The core expects JavaScript numbers carrying 32-bit bit patterns. Use
-`parseHex()` for external hexadecimal input and `formatHex()` for unsigned
-display. The core is standard ESM; consumers without ESM support need a
-target-specific integration layer. See the repository specification for the
-interoperable algorithm contract.
+The core is standard ESM; consumers without ESM support need a target-specific
+integration layer. See the [shared input contract](../SPEC.md#1-scope-and-contract)
+for 32-bit value semantics.
 
 ## 9. License
 

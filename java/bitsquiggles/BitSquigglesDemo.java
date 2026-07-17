@@ -225,7 +225,7 @@ public class BitSquigglesDemo {
             if (spec == null) return;
             Graphics2D g2 = (Graphics2D) g.create();
             try {
-                BitSquigglesSwingRenderer.paint(g2, spec, getWidth(), getHeight());
+                BitSquiggle32Renderer.renderSmooth(g2, spec, getWidth(), getHeight());
             } finally {
                 g2.dispose();
             }
@@ -258,18 +258,7 @@ public class BitSquigglesDemo {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             try {
-                byte[] px = grid.pixels();
-                int w = grid.width();
-                int h = grid.height();
-                Color bg = parseHex(grid.background().hex());
-                Color fg = parseHex(grid.foreground().hex());
-                for (int row = 0; row < h; row++) {
-                    for (int col = 0; col < w; col++) {
-                        int v = px[row * w + col] & 0xFF;
-                        g2.setColor(v == 0 ? bg : fg);
-                        g2.fillRect(col * cellPx, row * cellPx, cellPx, cellPx);
-                    }
-                }
+                BitSquiggle32Renderer.renderRaster(g2, grid, cellPx);
             } finally {
                 g2.dispose();
             }
@@ -307,13 +296,6 @@ public class BitSquigglesDemo {
         Dimension pref = row.getPreferredSize();
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, pref.height));
         return row;
-    }
-
-    static Color parseHex(String hex) {
-        return new Color(
-            Integer.parseInt(hex.substring(1, 3), 16),
-            Integer.parseInt(hex.substring(3, 5), 16),
-            Integer.parseInt(hex.substring(5, 7), 16));
     }
 
     private static JPanel makeCard(int pad) {

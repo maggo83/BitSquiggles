@@ -9,18 +9,18 @@
       "import": "./bitsquiggle32.js",
       "default": "./bitsquiggle32.js"
     },
-    "./canvas": {
-      "types": "./bitsquiggles-canvas-renderer.d.ts",
-      "import": "./bitsquiggles-canvas-renderer.js",
-      "default": "./bitsquiggles-canvas-renderer.js"
+    "./renderer": {
+      "types": "./bitsquiggle32-renderer.d.ts",
+      "import": "./bitsquiggle32-renderer.js",
+      "default": "./bitsquiggle32-renderer.js"
     }
   },
   "types": "./bitsquiggle32.d.ts",
   "files": [
     "bitsquiggle32.js",
     "bitsquiggle32.d.ts",
-    "bitsquiggles-canvas-renderer.js",
-    "bitsquiggles-canvas-renderer.d.ts",
+    "bitsquiggle32-renderer.js",
+    "bitsquiggle32-renderer.d.ts",
     "README.md",
     "LICENSE"
   ],

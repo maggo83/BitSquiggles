@@ -1,13 +1,14 @@
 # BitSquiggle32 for Python and MicroPython
 
-← Back to the [BitSquiggles project overview](../README.md).
+← Back to the [BitSquiggles project overview](../README.md). Read the
+[normative specification](../SPEC.md) for behavior shared by every port.
 
 ## 1. Status and scope
 
-This dependency-free module is the BitSquiggle32 reference implementation for
-CPython and MicroPython-compatible environments. It produces the canonical
-visual specification and exact $16\times22$ binary raster. It does not derive
-fingerprints or make security decisions from them.
+This guide explains how to integrate the dependency-free CPython and
+MicroPython-compatible reference implementation. Project purpose, safety
+boundaries, and release status live in the [project overview](../README.md);
+the shared encoding contract lives in the [specification](../SPEC.md).
 
 ## 2. Include / install
 
@@ -32,11 +33,10 @@ raster = bitsquiggle32.pixels(0x12345678)
 print(visual["actual_mode"], raster["foreground"]["hex"])
 ```
 
-`spec()` returns a dictionary containing the input, mixed value, connections,
-active cells, colors, style, mode/fallback metadata, and polarity metadata.
-`pixels()` returns the exact raster and its colors. Inputs must be `int` values
-from `0` through `0xffffffff`; invalid inputs and unknown styles raise
-`ValueError`.
+Both `spec()` and `pixels()` accept the same unsigned input and optional style.
+The dictionary fields, supported styles, constants, helpers, and input
+validation rules are defined in the
+[Python API mapping](../SPEC.md#122-micropython-compatible-python).
 
 ## 4. Render the exact raster
 
@@ -51,20 +51,21 @@ for y in range(raster["height"]):
         # Draw one foreground or background cell at x, y.
 ```
 
-Do not antialias, interpolate, or alter raster pixels when exact comparison is
-required.
+The exact dimensions and rendering rules are defined in the
+[normative raster specification](../SPEC.md#10-exact-binary-renderer).
 
 ## 5. Optional smooth rendering
 
 This port intentionally contains no graphics-framework renderer. Use the exact
 raster on constrained displays, or build a target-specific smooth renderer from
-the `spec()` connection/cell data. A smooth renderer is a presentation layer and
-must not redefine the canonical connection mask or raster.
+the `spec()` connection/cell data.
 
 For CPython applications, suitable optional renderer targets include Pillow for
 image output, Tkinter for a standard-library desktop canvas, and pygame for an
-interactive display. None is required or bundled: a renderer should remain a
-separate integration layer so the core stays MicroPython-compatible.
+interactive display. None is required or bundled, so the core stays
+MicroPython-compatible. Follow the shared
+[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and renderer
+naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
 
 ## 6. Test conformance
 
@@ -75,9 +76,9 @@ cd micropython
 python3 test_bitsquiggle32.py
 ```
 
-Repository CI runs this harness alongside checks for the Java-generated
-versioned conformance fixture. Direct fixture consumption by this port is a
-future hardening step.
+Repository CI runs this harness alongside checks for the shared fixture. The
+complete conformance requirements are in the
+[specification](../SPEC.md#13-conformance-requirements).
 
 ## 7. Package / release notes
 
@@ -87,10 +88,9 @@ runtime dependencies.
 
 ## 8. Limitations and compatibility
 
-The module accepts only unsigned 32-bit integer inputs. Native MicroPython
-targets vary in available RAM; reduce long sampled test loops on constrained
-devices if needed. Callers remain responsible for deriving the fingerprint and
-for displaying any numeric value as unsigned where appropriate.
+Native MicroPython targets vary in available RAM; reduce long sampled test
+loops on constrained devices if needed. See the
+[shared input contract](../SPEC.md#1-scope-and-contract) for value semantics.
 
 ## 9. License
 

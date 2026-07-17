@@ -3,6 +3,7 @@
 
 export const ROWS = 7;
 export const COLUMNS = 5;
+export const EDGE_COUNT = 58;
 export const PIXEL_WIDTH = 16;
 export const PIXEL_HEIGHT = 22;
 
@@ -168,7 +169,7 @@ function popcount(value) {
   return count;
 }
 
-export function pixels(connections) {
+function generatePixels(connections) {
   const raster = new Uint8Array(PIXEL_WIDTH * PIXEL_HEIGHT);
   const cells = activeCells(connections);
   const setPixel = (x, y) => { raster[y * PIXEL_WIDTH + x] = 1; };
@@ -204,7 +205,7 @@ function edgeValue(connections, startRow, startColumn, endRow, endColumn) {
   return connections[index];
 }
 
-export function visualize(input, style = "standard") {
+export function spec(input, style = "standard") {
   if (!STYLES.includes(style)) throw new RangeError(`unknown style: ${style}`);
   input |= 0;
   const mixed = mix32(input);
@@ -219,11 +220,25 @@ export function visualize(input, style = "standard") {
     mixed,
     connections,
     cells: activeCells(connections),
-    pixels: pixels(connections),
+    style,
     preferredMode: MODES[preferredModeIndex],
     actualMode: MODES[actualModeIndex],
     fallback,
+    luminanceIndex: mixed & 0x3,
+    swapped: popcount(input) % 2 === 1,
     ...colors(mixed, input, style)
+  };
+}
+
+export function pixels(input, style = "standard") {
+  const visual = spec(input, style);
+  return {
+    width: PIXEL_WIDTH,
+    height: PIXEL_HEIGHT,
+    pixels: generatePixels(visual.connections),
+    background: visual.background,
+    foreground: visual.foreground,
+    style
   };
 }
 

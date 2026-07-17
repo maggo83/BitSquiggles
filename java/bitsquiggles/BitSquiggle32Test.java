@@ -205,12 +205,23 @@ public final class BitSquiggle32Test {
         BufferedImage image = new BufferedImage(160, 220, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = image.createGraphics();
         try {
-            BitSquigglesSwingRenderer.paint(
+            BitSquiggle32Renderer.renderSmooth(
                     graphics, BitSquiggle32.spec(0x12345678), image.getWidth(), image.getHeight());
         } finally {
             graphics.dispose();
         }
         check(image.getRGB(image.getWidth() / 2, 1) != 0, "Swing renderer paints background");
+
+        BitSquiggle32.PixelGrid grid = BitSquiggle32.pixels(0x12345678);
+        BufferedImage rasterImage = new BufferedImage(
+                grid.width() * 4, grid.height() * 4, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D rasterGraphics = rasterImage.createGraphics();
+        try {
+            BitSquiggle32Renderer.renderRaster(rasterGraphics, grid, 4);
+        } finally {
+            rasterGraphics.dispose();
+        }
+        check(rasterImage.getRGB(0, 0) != 0, "Swing renderer paints exact raster background");
     }
 
     private static long pack(byte[] connections) {

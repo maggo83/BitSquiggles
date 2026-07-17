@@ -1,15 +1,17 @@
 # BitSquiggle32 for Java 17+
 
-← Back to the [BitSquiggles project overview](../README.md).
+← Back to the [BitSquiggles project overview](../README.md). Read the
+[normative specification](../SPEC.md) for behavior shared by every port.
 
 ## 1. Status and scope
 
-This is the dependency-free Java 17+ reference implementation of BitSquiggle32.
-It provides the canonical visual specification and exact $16\times22$ binary
-raster. It does not derive fingerprints or make security decisions from them.
+This guide explains how to integrate the Java 17+ reference implementation.
+Project purpose, safety boundaries, and release status live in the
+[project overview](../README.md); the shared encoding contract lives in the
+[specification](../SPEC.md).
 
 The public core is `bitsquiggles.BitSquiggle32`. The optional
-`BitSquigglesSwingRenderer` renders smooth Java2D output, while
+`BitSquiggle32Renderer` renders smooth Java2D output, while
 `BitSquigglesDemo` is a separate Swing application that wires controls, views,
 and both renderers together.
 
@@ -40,10 +42,11 @@ System.out.println(visual.actualMode().label());
 System.out.println(raster.foreground().hex());
 ```
 
-`spec()` returns the input, mixed value, connection mask, active cells, colors,
-style, mode/fallback metadata, and polarity metadata. `pixels()` returns the
-exact raster and its colors. Arrays held by the returned records are mutable;
-treat them as immutable outputs or copy them before sharing them.
+Both methods also accept an optional `BitSquiggle32.Style`; the one-argument
+overloads use `STANDARD`. The shared output contract and every other public
+core symbol are defined in the [Java API mapping](../SPEC.md#121-java-17).
+Arrays held by the returned records are mutable; treat them as immutable outputs
+or copy them before sharing them.
 
 ## 4. Render the exact raster
 
@@ -59,22 +62,24 @@ for (int y = 0; y < raster.height(); y++) {
 }
 ```
 
-Do not antialias, interpolate, or alter raster pixels when exact comparison is
-required.
+The exact dimensions and rendering rules are defined in the
+[normative raster specification](../SPEC.md#10-exact-binary-renderer).
 
 ## 5. Optional smooth rendering
 
-Use the standalone `BitSquigglesSwingRenderer` when an application needs smooth
+Use the standalone `BitSquiggle32Renderer` when an application needs smooth
 Java2D output:
 
 ```java
-BitSquigglesSwingRenderer.paint(graphics, visual, width, height);
+BitSquiggle32Renderer.renderSmooth(graphics, visual, width, height);
+BitSquiggle32Renderer.renderRaster(graphics, raster, pixelSize);
 ```
 
 The renderer depends on Java2D but the `BitSquiggle32` core does not. The
 separate `BitSquigglesDemo` application demonstrates renderer use alongside
-input controls and exact raster views. Smooth rendering is a presentation
-option only; the canonical identity is the connection mask and exact raster.
+input controls and exact raster views. The shared smooth-rendering constraints
+are in the [specification](../SPEC.md#11-smooth-renderer); the shared renderer
+convention is in the [API mapping](../SPEC.md#12-reference-api-mapping).
 
 ## 6. Test conformance
 
@@ -89,7 +94,8 @@ java -cp out bitsquiggles.ConformanceFixtureGenerator --check
 ```
 
 The last two commands verify generated README SVGs and the shared versioned
-conformance fixture.
+conformance fixture. The complete conformance requirements are in the
+[specification](../SPEC.md#13-conformance-requirements).
 
 ## 7. Package / release notes
 
@@ -100,9 +106,8 @@ dependency; the optional Java2D renderer and Swing demo use standard JDK APIs.
 ## 8. Limitations and compatibility
 
 This implementation requires Java 17 or later because it uses records and
-modern switch syntax. It accepts `int` bit patterns only; callers are
-responsible for deriving and displaying any unsigned fingerprint correctly.
-See the repository specification for the interoperable algorithm contract.
+modern switch syntax. It accepts every `int` bit pattern as an unsigned 32-bit
+input; see the [shared input contract](../SPEC.md#1-scope-and-contract).
 
 ## 9. License
 

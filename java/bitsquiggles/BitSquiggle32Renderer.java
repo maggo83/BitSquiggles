@@ -1,4 +1,4 @@
-// BitSquiggles — optional Swing smooth renderer.
+// BitSquiggles — optional Java2D renderer.
 //
 // Grug 2-Clause License
 // 1. do what want
@@ -13,16 +13,16 @@ import java.awt.geom.Area;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 
-/** Optional Java2D presentation renderer for a {@link BitSquiggle32.VisSpec}. */
-public final class BitSquigglesSwingRenderer {
+/** Optional Java2D renderer for a {@link BitSquiggle32.VisSpec}. */
+public final class BitSquiggle32Renderer {
 
-    private BitSquigglesSwingRenderer() {}
+    private BitSquiggle32Renderer() {}
 
     /**
      * Paint a smooth presentation using the canonical 16×22 coordinate space.
      * This method does not alter the canonical connection mask or exact raster.
      */
-    public static void paint(
+    public static void renderSmooth(
             Graphics2D graphics, BitSquiggle32.VisSpec spec, int width, int height) {
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
@@ -67,7 +67,7 @@ public final class BitSquigglesSwingRenderer {
                 if (edgeValue(spec, row, column, row, column + 1) == 1
                         && edgeValue(spec, row + 1, column, row + 1, column + 1) == 1
                         && edgeValue(spec, row, column, row + 1, column) == 1
-                        && edgeValue(spec, row, column, row + 1, column + 1) == 1) {
+                        && edgeValue(spec, row, column + 1, row + 1, column + 1) == 1) {
                     foreground.add(new Area(new Rectangle2D.Double(
                             offsetX + (3 + column * 3) * scale,
                             offsetY + (3 + row * 3) * scale,
@@ -78,6 +78,24 @@ public final class BitSquigglesSwingRenderer {
 
         graphics.setColor(parseHex(spec.foreground().hex()));
         graphics.fill(foreground);
+    }
+
+    /** Paint an exact pixel grid using whole {@code pixelSize}-square target pixels. */
+    public static void renderRaster(
+            Graphics2D graphics, BitSquiggle32.PixelGrid grid, int pixelSize) {
+        int width = grid.width();
+        int height = grid.height();
+        byte[] pixels = grid.pixels();
+        graphics.setColor(parseHex(grid.background().hex()));
+        graphics.fillRect(0, 0, width * pixelSize, height * pixelSize);
+        graphics.setColor(parseHex(grid.foreground().hex()));
+        for (int row = 0; row < height; row++) {
+            for (int column = 0; column < width; column++) {
+                if (pixels[row * width + column] != 0) {
+                    graphics.fillRect(column * pixelSize, row * pixelSize, pixelSize, pixelSize);
+                }
+            }
+        }
     }
 
     private static int edgeValue(
