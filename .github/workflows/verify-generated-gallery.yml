@@ -25,8 +25,8 @@ jobs:
         run: java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
       - name: Verify generated example gallery
         run: java -cp out bitsquiggles.GalleryGenerator --check
-      - name: Verify generated browser parity fixtures
-        run: java -cp out bitsquiggles.WebFixtureGenerator --check
+      - name: Verify generated conformance fixtures
+        run: java -cp out bitsquiggles.ConformanceFixtureGenerator --check
       - name: Run browser parity tests
         run: node web/bitsquiggle32.test.mjs
       - name: Run MicroPython-compatible tests under CPython

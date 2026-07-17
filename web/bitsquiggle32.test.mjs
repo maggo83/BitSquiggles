@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { EDGES, formatHex, parseHex, pixels, visualize } from "./bitsquiggle32.js";
 
-const fixtures = JSON.parse(await readFile(new URL("./fixtures.json", import.meta.url), "utf8"));
-assert.equal(fixtures.format, 1, "known fixture format");
+const fixtures = JSON.parse(await readFile(new URL("../fixtures/v1.json", import.meta.url), "utf8"));
+assert.equal(fixtures.schema, "bitsquiggles-conformance", "known fixture schema");
+assert.equal(fixtures.version, 1, "known fixture version");
+assert.deepEqual(fixtures.dimensions, { rows: 7, columns: 5, edges: 58, pixelWidth: 16, pixelHeight: 22 }, "known dimensions");
 assert.equal(EDGES.length, 58, "canonical edge count");
 
 for (const vector of fixtures.vectors) {
@@ -14,8 +16,9 @@ for (const vector of fixtures.vectors) {
   assert.equal(visual.preferredMode, vector.preferredMode, `preferred mode for ${vector.input}`);
   assert.equal(visual.actualMode, vector.actualMode, `actual mode for ${vector.input}`);
   assert.equal(visual.fallback, vector.fallback, `fallback state for ${vector.input}`);
-  assert.equal([...visual.pixels].join(""), [...pixels(visual.connections)].join(""), `raster for ${vector.input}`);
-  for (const [style, [background, foreground]] of Object.entries(vector.styles)) {
+  assert.equal([...visual.pixels].join(""), vector.pixels, `raster for ${vector.input}`);
+  assert.equal([...pixels(visual.connections)].join(""), vector.pixels, `pixel renderer for ${vector.input}`);
+  for (const [style, { background, foreground }] of Object.entries(vector.styles)) {
     const styled = visualize(input, style);
     assert.equal(styled.background, background, `${style} background for ${vector.input}`);
     assert.equal(styled.foreground, foreground, `${style} foreground for ${vector.input}`);

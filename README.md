@@ -200,7 +200,7 @@ it manually after changing rendering behavior, run:
 mkdir -p out
 javac -d out java/bitsquiggles/*.java
 java -cp out bitsquiggles.GalleryGenerator
-java -cp out bitsquiggles.WebFixtureGenerator
+java -cp out bitsquiggles.ConformanceFixtureGenerator
 ```
 
 GitHub Actions also verifies the gallery on every push and pull request. The
@@ -254,11 +254,12 @@ java/bitsquiggles/
   BitSquiggle32Test.java   Java conformance and property tests
   BitSquigglesDemo.java    Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
-  WebFixtureGenerator.java Java-generated browser parity fixtures
+  ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
   test_bitsquiggle32.py    Python conformance and property tests
 docs/examples/             Generated README example sheets
+fixtures/v1.json           Versioned cross-language conformance fixture
 web/                       Static GitHub Pages playground and parity tests
 .githooks/pre-commit       Regenerates and stages example sheets locally
 .github/workflows/         Verifies generated files, runs tests, and deploys Pages
@@ -266,7 +267,7 @@ web/                       Static GitHub Pages playground and parity tests
 
 When behavior, constants, or formats change, update [SPEC.md](SPEC.md) and the
 conformance tests together. When rendering changes, regenerate
-`docs/examples/` and `web/fixtures.json` with their Java generators as
+`docs/examples/` and `fixtures/v1.json` with their Java generators as
 described above. Keep project motivation and trade-offs here so the same
 technical rules do not have to be maintained in two documents.
 
