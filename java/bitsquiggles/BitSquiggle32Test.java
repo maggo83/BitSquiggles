@@ -2,17 +2,17 @@
 // 1. do what want
 // 2. not sue grug
 
-package bit32vis;
+package bitsquiggles;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-/** Dependency-free test harness. Run with: java -cp out bit32vis.Bit32VisTest */
-public final class Bit32VisTest {
+/** Dependency-free test harness. Run with: java -cp out bitsquiggles.BitSquiggle32Test */
+public final class BitSquiggle32Test {
     private static int checks;
 
-    private Bit32VisTest() {}
+    private BitSquiggle32Test() {}
 
     public static void main(String[] args) {
         testCanonicalEdgesAndModeCapacities();
@@ -24,14 +24,14 @@ public final class Bit32VisTest {
         testSlashWrapRegression();
         testGoldenVector();
         testDemoHexParsing();
-        System.out.println("Bit32Vis Java tests passed (" + checks + " checks)");
+        System.out.println("BitSquiggles Java tests passed (" + checks + " checks)");
     }
 
     private static void testCanonicalEdgesAndModeCapacities() {
-        Bit32Vis.Edge[] edges = Bit32Vis.edges();
+        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
         check(edges.length == 58, "58 canonical edges");
         String previous = "";
-        for (Bit32Vis.Edge edge : edges) {
+        for (BitSquiggle32.Edge edge : edges) {
             check(edge.endRow() == edge.startRow() || edge.endRow() == edge.startRow() + 1,
                     "edge row adjacency");
             check(edge.endColumn() == edge.startColumn()
@@ -48,22 +48,22 @@ public final class Bit32VisTest {
 
         int[] expected = {32, 31, 29, 33};
         for (int i = 0; i < expected.length; i++) {
-            check(Bit32Vis.freeConnectionCount(Bit32Vis.Mode.values()[i]) == expected[i],
-                    "free connection count for " + Bit32Vis.Mode.values()[i]);
+            check(BitSquiggle32.freeConnectionCount(BitSquiggle32.Mode.values()[i]) == expected[i],
+                    "free connection count for " + BitSquiggle32.Mode.values()[i]);
         }
     }
 
     private static void testEveryModeAndCanonicalPriority() {
-        boolean[] seenPreferred = new boolean[Bit32Vis.Mode.values().length];
+        boolean[] seenPreferred = new boolean[BitSquiggle32.Mode.values().length];
         boolean sawFallback = false;
         boolean sawHalfTurnCapacityFallback = false;
         boolean sawAcceptedHalfTurn = false;
         for (int input = 0; input < 250_000; input++) {
-            Bit32Vis.VisSpec visual = Bit32Vis.spec(input);
+            BitSquiggle32.VisSpec visual = BitSquiggle32.spec(input);
             int preferredIndex = visual.preferredMode().ordinal();
             seenPreferred[preferredIndex] = true;
             sawFallback |= visual.fallback();
-            if (visual.preferredMode() == Bit32Vis.Mode.HALF_TURN) {
+            if (visual.preferredMode() == BitSquiggle32.Mode.HALF_TURN) {
                 if ((visual.mixed() & 1) == 1) {
                     check(visual.fallback(), "half-turn omitted bit uses fallback");
                     sawHalfTurnCapacityFallback = true;
@@ -72,16 +72,16 @@ public final class Bit32VisTest {
                 }
             }
 
-            check(Bit32Vis.matchesMode(visual.connections(), visual.actualMode()),
+            check(BitSquiggle32.matchesMode(visual.connections(), visual.actualMode()),
                     "visual matches actual mode");
             if (!visual.fallback()) {
                 for (int earlier = 0; earlier < preferredIndex; earlier++) {
-                    check(!Bit32Vis.matchesMode(
-                                    visual.connections(), Bit32Vis.Mode.values()[earlier]),
+                    check(!BitSquiggle32.matchesMode(
+                                    visual.connections(), BitSquiggle32.Mode.values()[earlier]),
                             "accepted mode is canonical");
                 }
             } else {
-                check(visual.actualMode() == Bit32Vis.Mode.LEFT_RIGHT,
+                check(visual.actualMode() == BitSquiggle32.Mode.LEFT_RIGHT,
                         "fallback uses default mode");
             }
         }
@@ -94,10 +94,10 @@ public final class Bit32VisTest {
     }
 
     private static void testInputBitAvalanche() {
-        byte[] base = Bit32Vis.spec(0).connections();
+        byte[] base = BitSquiggle32.spec(0).connections();
         int totalDistance = 0;
         for (int bit = 0; bit < 32; bit++) {
-            byte[] changed = Bit32Vis.spec(1 << bit).connections();
+            byte[] changed = BitSquiggle32.spec(1 << bit).connections();
             int distance = distance(base, changed);
             check(distance > 0, "input bit changes monochrome visual: " + bit);
             check(distance >= 20, "input bit has useful edge avalanche: " + bit);
@@ -109,7 +109,7 @@ public final class Bit32VisTest {
     private static void testSampledMonochromeInjectivity() {
         Set<Long> masks = new HashSet<>();
         for (int input = 0; input < 500_000; input++) {
-            Bit32Vis.VisSpec visual = Bit32Vis.spec(input, Bit32Vis.Style.MONOCHROME);
+            BitSquiggle32.VisSpec visual = BitSquiggle32.spec(input, BitSquiggle32.Style.MONOCHROME);
             check(masks.add(pack(visual.connections())),
                     "unique sampled monochrome visual: " + input);
         }
@@ -117,8 +117,8 @@ public final class Bit32VisTest {
 
     private static void testPixelRendererIsLossless() {
         for (int input = 0; input < 2_000; input++) {
-            Bit32Vis.VisSpec visual = Bit32Vis.spec(input);
-            Bit32Vis.PixelGrid grid = Bit32Vis.pixels(input);
+            BitSquiggle32.VisSpec visual = BitSquiggle32.spec(input);
+            BitSquiggle32.PixelGrid grid = BitSquiggle32.pixels(input);
             check(grid.width() == 16 && grid.height() == 22, "pixel dimensions");
             check(grid.pixels().length == 352, "pixel storage");
 
@@ -133,9 +133,9 @@ public final class Bit32VisTest {
                         "right border");
             }
 
-            Bit32Vis.Edge[] edges = Bit32Vis.edges();
+            BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
             for (int edgeIndex = 0; edgeIndex < edges.length; edgeIndex++) {
-                Bit32Vis.Edge edge = edges[edgeIndex];
+                BitSquiggle32.Edge edge = edges[edgeIndex];
                 int x = 1 + edge.startColumn() * 3;
                 int y = 1 + edge.startRow() * 3;
                 int bridge = edge.startRow() == edge.endRow()
@@ -149,9 +149,9 @@ public final class Bit32VisTest {
 
     private static void testColorsAndParity() {
         int input = 0x89ABCDEF;
-        Bit32Vis.VisSpec standard = Bit32Vis.spec(input, Bit32Vis.Style.STANDARD);
-        Bit32Vis.VisSpec contrast = Bit32Vis.spec(input, Bit32Vis.Style.HIGH_CONTRAST);
-        Bit32Vis.VisSpec mono = Bit32Vis.spec(input, Bit32Vis.Style.MONOCHROME);
+        BitSquiggle32.VisSpec standard = BitSquiggle32.spec(input, BitSquiggle32.Style.STANDARD);
+        BitSquiggle32.VisSpec contrast = BitSquiggle32.spec(input, BitSquiggle32.Style.HIGH_CONTRAST);
+        BitSquiggle32.VisSpec mono = BitSquiggle32.spec(input, BitSquiggle32.Style.MONOCHROME);
         check(Arrays.equals(standard.connections(), contrast.connections()),
                 "style preserves connections");
         check(Arrays.equals(standard.connections(), mono.connections()),
@@ -161,28 +161,28 @@ public final class Bit32VisTest {
         close(0.0, mono.foreground().C(), "monochrome foreground chroma");
         close(0.0, mono.background().C(), "monochrome background chroma");
 
-        Bit32Vis.VisSpec even = Bit32Vis.spec(0);
-        Bit32Vis.VisSpec odd = Bit32Vis.spec(1);
+        BitSquiggle32.VisSpec even = BitSquiggle32.spec(0);
+        BitSquiggle32.VisSpec odd = BitSquiggle32.spec(1);
         check(!even.swapped(), "even parity is unswapped");
         check(odd.swapped(), "odd parity is swapped");
     }
 
     private static void testSlashWrapRegression() {
-        Bit32Vis.VisSpec visual = Bit32Vis.spec(0xD9ABCDEF);
-        check(visual.actualMode() == Bit32Vis.Mode.DIAGONAL_SLASH,
+        BitSquiggle32.VisSpec visual = BitSquiggle32.spec(0xD9ABCDEF);
+        check(visual.actualMode() == BitSquiggle32.Mode.DIAGONAL_SLASH,
                 "slash wrap regression mode");
-        check(Bit32Vis.connection(visual.connections(), 1, 1, 2, 1)
-                        == Bit32Vis.connection(visual.connections(), 4, 3, 4, 4),
+        check(BitSquiggle32.connection(visual.connections(), 1, 1, 2, 1)
+                        == BitSquiggle32.connection(visual.connections(), 4, 3, 4, 4),
                 "slash copy maps upper vertical to lower horizontal edge");
-        check(Bit32Vis.connection(visual.connections(), 1, 2, 2, 2)
-                        == Bit32Vis.connection(visual.connections(), 3, 3, 3, 4),
+        check(BitSquiggle32.connection(visual.connections(), 1, 2, 2, 2)
+                        == BitSquiggle32.connection(visual.connections(), 3, 3, 3, 4),
                 "slash copy preserves adjacent diagonal edge relation");
     }
 
     private static void testGoldenVector() {
-        Bit32Vis.VisSpec visual = Bit32Vis.spec(0x89ABCDEF, Bit32Vis.Style.STANDARD);
+        BitSquiggle32.VisSpec visual = BitSquiggle32.spec(0x89ABCDEF, BitSquiggle32.Style.STANDARD);
         check(visual.mixed() == 0x47AC5876, "golden mixed value");
-        check(visual.preferredMode() == Bit32Vis.Mode.TOP_BOTTOM, "golden mode");
+        check(visual.preferredMode() == BitSquiggle32.Mode.TOP_BOTTOM, "golden mode");
         check(!visual.fallback(), "golden no fallback");
         check(flatten(visual.connections()).equals(
                 "0001111010110001011000011101010010101100001010011011010011"),
@@ -192,10 +192,10 @@ public final class Bit32VisTest {
     }
 
     private static void testDemoHexParsing() {
-        check(DemoApp.parseBits("89abcdef") == 0x89ABCDEF, "parse lowercase hex");
-        check(DemoApp.parseBits("0xFFFFFFFF") == -1, "parse unsigned max with prefix");
-        expectFailure(() -> DemoApp.parseBits("123"), "reject short input");
-        expectFailure(() -> DemoApp.parseBits("zzzzzzzz"), "reject non-hex input");
+        check(BitSquigglesDemo.parseBits("89abcdef") == 0x89ABCDEF, "parse lowercase hex");
+        check(BitSquigglesDemo.parseBits("0xFFFFFFFF") == -1, "parse unsigned max with prefix");
+        expectFailure(() -> BitSquigglesDemo.parseBits("123"), "reject short input");
+        expectFailure(() -> BitSquigglesDemo.parseBits("zzzzzzzz"), "reject non-hex input");
     }
 
     private static long pack(byte[] connections) {

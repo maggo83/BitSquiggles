@@ -1,4 +1,4 @@
-import { EDGES, STYLES, formatHex, parseHex, visualize } from "./bit32vis.js";
+import { EDGES, STYLES, formatHex, parseHex, visualize } from "./bitsquiggle32.js";
 
 const form = document.querySelector("#value-form");
 const input = document.querySelector("#value");
@@ -55,7 +55,7 @@ function update(value) {
   document.querySelector("#rendered-mode").textContent = standard.actualMode;
   const fallback = document.querySelector("#fallback");
   fallback.hidden = !standard.fallback;
-  fallback.textContent = "The preferred symmetry could not encode this value uniquely, so Bit32Vis used A|.";
+  fallback.textContent = "The preferred symmetry could not encode this value uniquely, so BitSquiggle32 used A|.";
   STYLES.forEach((style) => {
     const visual = visualize(value, style);
     const card = cards.get(style);

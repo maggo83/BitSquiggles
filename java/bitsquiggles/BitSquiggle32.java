@@ -1,10 +1,10 @@
-// Bit32Vis — injective connection-graph visualization of a 32-bit value.
+// BitSquiggles — injective connection-graph visualization of a 32-bit value.
 //
 // Grug 2-Clause License
 // 1. do what want
 // 2. not sue grug
 
-package bit32vis;
+package bitsquiggles;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public final class Bit32Vis {
+public final class BitSquiggle32 {
 
-    private Bit32Vis() {}
+    private BitSquiggle32() {}
 
     public static final int ROWS = 7;
     public static final int COLUMNS = 5;

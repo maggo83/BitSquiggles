@@ -1,6 +1,6 @@
-# Bit32Vis
+# BitSquiggles
 
-Bit32Vis is an experimental visual encoding for comparing two already-derived
+BitSquiggles is an experimental visual encoding for comparing two already-derived
 32-bit fingerprints. It turns the same value into the same compact pattern on
 different devices, including devices with very small or monochrome displays.
 
@@ -17,7 +17,7 @@ project and design-rationale level.
 ## Why this project exists
 
 Eight hexadecimal digits are compact but tiring to compare, especially on a
-small screen. Bit32Vis explores whether a structured visual can make accidental
+small screen. BitSquiggles explores whether a structured visual can make accidental
 mismatches easier to notice without requiring color, antialiasing, or a large
 display.
 
@@ -28,12 +28,12 @@ It is useful when all of the following are true:
 - a person can inspect both displays at roughly the same time;
 - the goal is convenient detection of accidental mismatch.
 
-Bit32Vis does not decide what should be fingerprinted. Deriving the correct
+BitSquiggles does not decide what should be fingerprinted. Deriving the correct
 32-bit input remains the caller's responsibility.
 
 ## Intended audience and uses
 
-Bit32Vis is primarily for:
+BitSquiggles is primarily for:
 
 - hardware-wallet and companion-application developers;
 - embedded-device developers working with low-resolution displays;
@@ -51,7 +51,7 @@ identity in a large collection.
 ### Not protection against a deliberate attacker
 
 The input contains only 32 bits. A targeted collision is computationally
-feasible, regardless of how those bits are displayed. Bit32Vis is not a
+feasible, regardless of how those bits are displayed. BitSquiggles is not a
 cryptographic authentication mechanism and must not be treated as one.
 
 A random value matches one fixed 32-bit value with probability $1/2^{32}$.
@@ -61,22 +61,22 @@ boundary against an attacker who can search for inputs.
 ### Not a replacement for complete identifiers
 
 Do not reduce a Bitcoin address, payment destination, public key, transaction,
-or other long identifier to 32 bits and then use Bit32Vis as the authorization
+or other long identifier to 32 bits and then use BitSquiggles as the authorization
 decision. Different identifiers can have the same 32-bit fingerprint and will
 then correctly produce the same pattern.
 
 Payment destinations and other security-sensitive identifiers still require
 an appropriate exact or authenticated comparison of the complete value. A
-Bit32Vis pattern can only be an additional cue.
+BitSquiggle32 can only be an additional cue.
 
 ### Not a hash, checksum, or fingerprint derivation function
 
-Bit32Vis accepts an unsigned 32-bit value. It does not:
+BitSquiggle32 accepts an unsigned 32-bit value. It does not:
 
 - accept arbitrary strings or byte arrays;
 - derive BIP-32 or other protocol fingerprints;
 - prove possession of a key;
-- add information that was discarded before the value reached Bit32Vis;
+- add information that was discarded before the value reached BitSquiggle32;
 - provide cryptographic collision resistance.
 
 ## Design assumptions and choices
@@ -102,14 +102,14 @@ low-resolution displays.
 
 ### Diffusion must not discard information
 
-Nearby numeric inputs should not lead to nearby-looking outputs. Bit32Vis uses
+Nearby numeric inputs should not lead to nearby-looking outputs. BitSquiggle32 uses
 a reversible 32-bit mixer rather than a many-to-one hash: it improves avalanche
 while preserving the size and uniqueness of the input domain.
 
 ### Invisible metadata cannot establish uniqueness
 
 The internal copy-family choice is not printed into the pattern, and different
-families can produce the same geometry. Bit32Vis resolves such overlaps by a
+families can produce the same geometry. BitSquiggle32 resolves such overlaps by a
 canonical priority rule and a full-capacity fallback. Uniqueness is claimed for
 the visible connection geometry, not for a hidden mode label.
 
@@ -128,7 +128,7 @@ vector. This favors transparent, portable code over framework integration.
 
 ## History
 
-Bit32Vis was inspired by
+BitSquiggles was inspired by
 [Hallmarks](https://github.com/GBKS/hallmarks). Early experiments sought more
 visual diversity on small screens and clearer patterns in monochrome pixel
 renderings.
@@ -145,7 +145,7 @@ families.
 
 ## Status
 
-Bit32Vis is **experimental and unreleased**.
+BitSquiggles is **experimental and unreleased**.
 
 Current state:
 
@@ -172,7 +172,7 @@ The three columns are Standard, High Contrast, and Monochrome. Every column
 contains an 80×110 smooth rendering above its native, unscaled 16×22 pixel
 raster. The color changes between styles; the encoded geometry does not.
 
-**Try any value in the [interactive playground](https://maggo83.github.io/bit32vis/).**
+**Try any value in the [interactive playground](https://maggo83.github.io/BitSquiggles/).**
 It runs entirely in the browser and creates a shareable link for each value.
 
 | Input | Representative behavior | Rendered styles and native rasters |
@@ -198,9 +198,9 @@ it manually after changing rendering behavior, run:
 
 ```bash
 mkdir -p out
-javac -d out java/bit32vis/*.java
-java -cp out bit32vis.GalleryGenerator
-java -cp out bit32vis.WebFixtureGenerator
+javac -d out java/bitsquiggles/*.java
+java -cp out bitsquiggles.GalleryGenerator
+java -cp out bitsquiggles.WebFixtureGenerator
 ```
 
 GitHub Actions also verifies the gallery on every push and pull request. The
@@ -216,28 +216,28 @@ From the repository root:
 
 ```bash
 mkdir -p out
-javac -d out java/bit32vis/*.java
-java -Xmx512m -cp out bit32vis.Bit32VisTest
-java -cp out bit32vis.DemoApp
+javac -d out java/bitsquiggles/*.java
+java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
+java -cp out bitsquiggles.BitSquigglesDemo
 ```
 
-The API entry points are `Bit32Vis.spec(...)` for the abstract visual and
-`Bit32Vis.pixels(...)` for the exact binary raster. Java accepts every 32-bit
+The API entry points are `BitSquiggle32.spec(...)` for the abstract visual and
+`BitSquiggle32.pixels(...)` for the exact binary raster. Java accepts every 32-bit
 pattern through `int`; format it as unsigned when displaying it. Arrays inside
 the returned records are mutable and should be treated as immutable outputs or
 copied before being shared with untrusted code.
 
 ### MicroPython-compatible Python
 
-Copy [micropython/bit32vis.py](micropython/bit32vis.py) to the target and import
-it as `bit32vis`. The corresponding entry points are `spec(...)` and
+Copy [micropython/bitsquiggle32.py](micropython/bitsquiggle32.py) to the target and import
+it as `bitsquiggle32`. The corresponding entry points are `spec(...)` and
 `pixels(...)`.
 
 Run the tests under CPython or MicroPython:
 
 ```bash
 cd micropython
-python3 test_bit32vis.py
+python3 test_bitsquiggle32.py
 ```
 
 Native MicroPython targets vary in available RAM. The sampled uniqueness tests
@@ -249,15 +249,15 @@ itself uses a small fixed working set.
 ```text
 README.md                  project purpose, audience, rationale, and status
 SPEC.md                    normative behavior and implementation details
-java/bit32vis/
-  Bit32Vis.java            Java reference implementation
-  Bit32VisTest.java        Java conformance and property tests
-  DemoApp.java             Java Swing demonstration
+java/bitsquiggles/
+  BitSquiggle32.java       Java reference implementation
+  BitSquiggle32Test.java   Java conformance and property tests
+  BitSquigglesDemo.java    Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
   WebFixtureGenerator.java Java-generated browser parity fixtures
 micropython/
-  bit32vis.py              MicroPython-compatible implementation
-  test_bit32vis.py         Python conformance and property tests
+  bitsquiggle32.py         MicroPython-compatible implementation
+  test_bitsquiggle32.py    Python conformance and property tests
 docs/examples/             Generated README example sheets
 web/                       Static GitHub Pages playground and parity tests
 .githooks/pre-commit       Regenerates and stages example sheets locally

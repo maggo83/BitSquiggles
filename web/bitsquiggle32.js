@@ -1,4 +1,4 @@
-// Bit32Vis browser renderer — a tested port of the Java reference algorithm.
+// BitSquiggle32 browser renderer — a tested port of the Java reference algorithm.
 // Grug 2-Clause License: do what want; not sue grug.
 
 export const ROWS = 7;

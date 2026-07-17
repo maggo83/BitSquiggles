@@ -3,7 +3,7 @@
 set -eu
 
 mkdir -p out
-javac -d out java/bit32vis/*.java
-java -cp out bit32vis.GalleryGenerator
-java -cp out bit32vis.WebFixtureGenerator
+javac -d out java/bitsquiggles/*.java
+java -cp out bitsquiggles.GalleryGenerator
+java -cp out bitsquiggles.WebFixtureGenerator
 git add docs/examples web/fixtures.json

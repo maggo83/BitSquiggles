@@ -1,13 +1,13 @@
-// Bit32Vis — interactive Swing demo.
+// BitSquiggles — interactive Swing demo.
 //
 // Grug 2-Clause License
 // 1. do what want
 // 2. not sue grug
 //
 // Run from the repo root:
-//   javac -d out java/bit32vis/*.java && java -cp out bit32vis.DemoApp
+//   javac -d out java/bitsquiggles/*.java && java -cp out bitsquiggles.BitSquigglesDemo
 
-package bit32vis;
+package bitsquiggles;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -17,7 +17,7 @@ import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DemoApp {
+public class BitSquigglesDemo {
 
     // ── UI palette ────────────────────────────────────────────────────────────
     private static final Color APP_BG    = new Color(0xF2, 0xF2, 0xF7);
@@ -32,7 +32,7 @@ public class DemoApp {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Bit32Vis");
+            JFrame frame = new JFrame("BitSquiggles");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel(new BorderLayout());
@@ -94,9 +94,9 @@ public class DemoApp {
         content.add(sectionLabel("Styles"));
         content.add(vgap(8));
         JPanel stylesRow = hrow(
-            variantCard(Bit32Vis.Style.STANDARD,      200, "Standard"),
-            variantCard(Bit32Vis.Style.HIGH_CONTRAST, 200, "High Contrast"),
-            variantCard(Bit32Vis.Style.MONOCHROME,    200, "Monochrome"));
+            variantCard(BitSquiggle32.Style.STANDARD,      200, "Standard"),
+            variantCard(BitSquiggle32.Style.HIGH_CONTRAST, 200, "High Contrast"),
+            variantCard(BitSquiggle32.Style.MONOCHROME,    200, "Monochrome"));
         content.add(stylesRow);
         content.add(vgap(20));
 
@@ -111,7 +111,7 @@ public class DemoApp {
             if (!first) sizesCard.add(hgap(14));
             first = false;
             JPanel sub = vstack(CARD_BG);
-            VisView v = new VisView(Bit32Vis.Style.STANDARD, sz);
+            VisView v = new VisView(BitSquiggle32.Style.STANDARD, sz);
             allViews.add(v);
             v.setAlignmentX(Component.CENTER_ALIGNMENT);
             sub.add(v);
@@ -156,7 +156,7 @@ public class DemoApp {
         card.setLayout(new BoxLayout(card, BoxLayout.X_AXIS));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
         boolean first = true;
-        for (Bit32Vis.Style style : Bit32Vis.Style.values()) {
+        for (BitSquiggle32.Style style : BitSquiggle32.Style.values()) {
             if (!first) card.add(hgap(20));
             first = false;
             JPanel sub = vstack(CARD_BG);
@@ -177,7 +177,7 @@ public class DemoApp {
     private static void updateAll(String input) {
         try {
             int bits = parseBits(input);
-            Bit32Vis.VisSpec visual = Bit32Vis.spec(bits);
+            BitSquiggle32.VisSpec visual = BitSquiggle32.spec(bits);
             String fallback = visual.fallback() ? " → A| fallback" : "";
             statusLabel.setText(String.format(
                     "unsigned: %d  ·  mixed: %08x  ·  mode: %s%s",
@@ -203,10 +203,10 @@ public class DemoApp {
     // =========================================================================
 
     static class VisView extends JComponent {
-        private final Bit32Vis.Style style;
-        private Bit32Vis.VisSpec spec;
+        private final BitSquiggle32.Style style;
+        private BitSquiggle32.VisSpec spec;
 
-        VisView(Bit32Vis.Style style, int w) {
+        VisView(BitSquiggle32.Style style, int w) {
             this.style = style;
             int h = (int) Math.round(w * 22.0 / 16.0);
             Dimension d = new Dimension(w, h);
@@ -216,7 +216,7 @@ public class DemoApp {
         }
 
         void setInput(int bits) {
-            spec = Bit32Vis.spec(bits, style);
+            spec = BitSquiggle32.spec(bits, style);
             repaint();
         }
 
@@ -234,11 +234,11 @@ public class DemoApp {
     }
 
     static class PixelView extends JComponent {
-        private final Bit32Vis.Style style;
+        private final BitSquiggle32.Style style;
         private final int cellPx;
-        private Bit32Vis.PixelGrid grid;
+        private BitSquiggle32.PixelGrid grid;
 
-        PixelView(Bit32Vis.Style style, int cellPx) {
+        PixelView(BitSquiggle32.Style style, int cellPx) {
             this.style = style;
             this.cellPx = cellPx;
             Dimension d = new Dimension(16 * cellPx, 22 * cellPx);
@@ -248,7 +248,7 @@ public class DemoApp {
         }
 
         void setInput(int bits) {
-            grid = Bit32Vis.pixels(bits, style);
+            grid = BitSquiggle32.pixels(bits, style);
             repaint();
         }
 
@@ -281,7 +281,7 @@ public class DemoApp {
     // Paint logic — continuous 16×22 viewBox matching the exact pixel topology.
     // =========================================================================
 
-    static void paintVis(Graphics2D g2, Bit32Vis.VisSpec spec, int width, int height) {
+    static void paintVis(Graphics2D g2, BitSquiggle32.VisSpec spec, int width, int height) {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,   RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING,      RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
@@ -298,8 +298,8 @@ public class DemoApp {
         // Build one union before painting. Rendering overlapping antialiased
         // primitives separately can leave hairline background seams.
         Area foreground = new Area();
-        for (int row = 0; row < Bit32Vis.ROWS; row++) {
-            for (int column = 0; column < Bit32Vis.COLUMNS; column++) {
+        for (int row = 0; row < BitSquiggle32.ROWS; row++) {
+            for (int column = 0; column < BitSquiggle32.COLUMNS; column++) {
                 if (spec.cells()[row][column] == 0) continue;
                 double x = ox + (1 + column * 3) * scale;
                 double y = oy + (1 + row * 3) * scale;
@@ -310,10 +310,10 @@ public class DemoApp {
             }
         }
 
-        Bit32Vis.Edge[] edges = Bit32Vis.edges();
+        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
         for (int i = 0; i < edges.length; i++) {
             if (spec.connections()[i] == 0) continue;
-            Bit32Vis.Edge edge = edges[i];
+            BitSquiggle32.Edge edge = edges[i];
             double x = ox + (1 + edge.startColumn() * 3) * scale;
             double y = oy + (1 + edge.startRow() * 3) * scale;
             if (edge.startRow() == edge.endRow()) {
@@ -326,8 +326,8 @@ public class DemoApp {
         }
 
         // A four-cell cycle closes its one-unit central junction.
-        for (int row = 0; row < Bit32Vis.ROWS - 1; row++) {
-            for (int column = 0; column < Bit32Vis.COLUMNS - 1; column++) {
+        for (int row = 0; row < BitSquiggle32.ROWS - 1; row++) {
+            for (int column = 0; column < BitSquiggle32.COLUMNS - 1; column++) {
                 if (edgeValue(spec, row, column, row, column + 1) == 1
                         && edgeValue(spec, row + 1, column, row + 1, column + 1) == 1
                         && edgeValue(spec, row, column, row + 1, column) == 1
@@ -345,11 +345,11 @@ public class DemoApp {
     }
 
     private static int edgeValue(
-            Bit32Vis.VisSpec spec, int startRow, int startColumn,
+            BitSquiggle32.VisSpec spec, int startRow, int startColumn,
             int endRow, int endColumn) {
-        Bit32Vis.Edge[] edges = Bit32Vis.edges();
+        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
         for (int i = 0; i < edges.length; i++) {
-            Bit32Vis.Edge edge = edges[i];
+            BitSquiggle32.Edge edge = edges[i];
             if (edge.startRow() == startRow && edge.startColumn() == startColumn
                     && edge.endRow() == endRow && edge.endColumn() == endColumn) {
                 return spec.connections()[i];
@@ -362,7 +362,7 @@ public class DemoApp {
     // UI helpers
     // =========================================================================
 
-    private static JPanel variantCard(Bit32Vis.Style style, int size, String label) {
+    private static JPanel variantCard(BitSquiggle32.Style style, int size, String label) {
         JPanel card = makeCard(12);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         VisView v = new VisView(style, size);
@@ -432,7 +432,7 @@ public class DemoApp {
     private static Component vgap(int h) { return Box.createVerticalStrut(h); }
     private static Component hgap(int w) { return Box.createHorizontalStrut(w); }
 
-    private static String styleName(Bit32Vis.Style style) {
+    private static String styleName(BitSquiggle32.Style style) {
         return switch (style) {
             case STANDARD      -> "Standard";
             case HIGH_CONTRAST -> "High Contrast";

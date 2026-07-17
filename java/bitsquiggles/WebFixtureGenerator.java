@@ -1,9 +1,9 @@
-// Bit32Vis — deterministic browser parity-fixture generator.
+// BitSquiggles — deterministic browser parity-fixture generator.
 // Grug 2-Clause License
 // 1. do what want
 // 2. not sue grug
 
-package bit32vis;
+package bitsquiggles;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -48,7 +48,7 @@ public final class WebFixtureGenerator {
 
     private static boolean appendVector(StringBuilder json, int input, boolean first) {
         if (!first) json.append(",\n");
-        Bit32Vis.VisSpec standard = Bit32Vis.spec(input, Bit32Vis.Style.STANDARD);
+        BitSquiggle32.VisSpec standard = BitSquiggle32.spec(input, BitSquiggle32.Style.STANDARD);
         json.append("    {\"input\":\"").append(hex(input))
                 .append("\",\"mixed\":\"").append(hex(standard.mixed()))
                 .append("\",\"connections\":\"").append(bits(standard.connections()))
@@ -56,10 +56,10 @@ public final class WebFixtureGenerator {
             .append("\",\"actualMode\":\"").append(standard.actualMode().label())
             .append("\",\"fallback\":").append(standard.fallback())
                 .append(",\"styles\":{");
-        for (int index = 0; index < Bit32Vis.Style.values().length; index++) {
+        for (int index = 0; index < BitSquiggle32.Style.values().length; index++) {
             if (index != 0) json.append(',');
-            Bit32Vis.Style style = Bit32Vis.Style.values()[index];
-            Bit32Vis.VisSpec visual = Bit32Vis.spec(input, style);
+            BitSquiggle32.Style style = BitSquiggle32.Style.values()[index];
+            BitSquiggle32.VisSpec visual = BitSquiggle32.spec(input, style);
             json.append('"').append(style.name().toLowerCase().replace('_', '-')).append("\":[\"")
                     .append(visual.background().hex()).append("\",\"")
                     .append(visual.foreground().hex()).append("\"]");

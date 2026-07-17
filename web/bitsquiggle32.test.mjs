@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { EDGES, formatHex, parseHex, pixels, visualize } from "./bit32vis.js";
+import { EDGES, formatHex, parseHex, pixels, visualize } from "./bitsquiggle32.js";
 
 const fixtures = JSON.parse(await readFile(new URL("./fixtures.json", import.meta.url), "utf8"));
 assert.equal(fixtures.format, 1, "known fixture format");
@@ -26,4 +26,4 @@ for (const vector of fixtures.vectors) {
 assert.equal(parseHex("0xFFFFFFFF"), -1, "parse unsigned maximum");
 assert.equal(formatHex(-1), "FFFFFFFF", "format unsigned maximum");
 assert.throws(() => parseHex("not hex"), /hexadecimal/, "reject invalid hexadecimal");
-console.log(`Bit32Vis browser tests passed (${fixtures.vectors.length} Java parity vectors)`);
+console.log(`BitSquiggles browser tests passed (${fixtures.vectors.length} Java parity vectors)`);

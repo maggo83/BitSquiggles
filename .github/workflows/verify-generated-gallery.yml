@@ -1,4 +1,4 @@
-name: Verify generated gallery
+name: Verify BitSquiggles generated outputs
 
 on:
   push:
@@ -20,14 +20,14 @@ jobs:
         with:
           node-version: '22'
       - name: Compile Java reference implementation
-        run: javac -d out java/bit32vis/*.java
+        run: javac -d out java/bitsquiggles/*.java
       - name: Run Java tests
-        run: java -Xmx512m -cp out bit32vis.Bit32VisTest
+        run: java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
       - name: Verify generated example gallery
-        run: java -cp out bit32vis.GalleryGenerator --check
+        run: java -cp out bitsquiggles.GalleryGenerator --check
       - name: Verify generated browser parity fixtures
-        run: java -cp out bit32vis.WebFixtureGenerator --check
+        run: java -cp out bitsquiggles.WebFixtureGenerator --check
       - name: Run browser parity tests
-        run: node web/bit32vis.test.mjs
+        run: node web/bitsquiggle32.test.mjs
       - name: Run MicroPython-compatible tests under CPython
-        run: python3 micropython/test_bit32vis.py
+        run: python3 micropython/test_bitsquiggle32.py

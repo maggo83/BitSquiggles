@@ -1,10 +1,10 @@
-// Bit32Vis — deterministic README example gallery generator.
+// BitSquiggles — deterministic README example gallery generator.
 //
 // Grug 2-Clause License
 // 1. do what want
 // 2. not sue grug
 
-package bit32vis;
+package bitsquiggles;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +21,7 @@ public final class GalleryGenerator {
     private static final int SMOOTH_WIDTH = 80;
     private static final int SMOOTH_HEIGHT = 110;
     private static final int CARD_WIDTH = 96;
-    private static final int SHEET_WIDTH = CARD_WIDTH * Bit32Vis.Style.values().length;
+    private static final int SHEET_WIDTH = CARD_WIDTH * BitSquiggle32.Style.values().length;
     private static final int SHEET_HEIGHT = 140;
     private static final int PIXEL_Y = 116;
 
@@ -87,10 +87,10 @@ public final class GalleryGenerator {
                 .append(SHEET_WIDTH).append("\" height=\"").append(SHEET_HEIGHT)
                 .append("\" viewBox=\"0 0 ").append(SHEET_WIDTH).append(' ')
                 .append(SHEET_HEIGHT).append("\">\n");
-        for (int index = 0; index < Bit32Vis.Style.values().length; index++) {
-            Bit32Vis.Style style = Bit32Vis.Style.values()[index];
-            Bit32Vis.VisSpec visual = Bit32Vis.spec(input, style);
-            Bit32Vis.PixelGrid pixels = Bit32Vis.pixels(input, style);
+        for (int index = 0; index < BitSquiggle32.Style.values().length; index++) {
+            BitSquiggle32.Style style = BitSquiggle32.Style.values()[index];
+            BitSquiggle32.VisSpec visual = BitSquiggle32.spec(input, style);
+            BitSquiggle32.PixelGrid pixels = BitSquiggle32.pixels(input, style);
             int x = index * CARD_WIDTH + 8;
             svg.append("  <g id=\"").append(style.name().toLowerCase())
                     .append("\">\n");
@@ -101,7 +101,7 @@ public final class GalleryGenerator {
         return svg.append("</svg>\n").toString();
     }
 
-    private static void appendSmooth(StringBuilder svg, Bit32Vis.VisSpec visual, int x, int y) {
+    private static void appendSmooth(StringBuilder svg, BitSquiggle32.VisSpec visual, int x, int y) {
         String foreground = visual.foreground().hex();
         svg.append("    <rect x=\"").append(x).append("\" y=\"").append(y)
                 .append("\" width=\"").append(SMOOTH_WIDTH).append("\" height=\"")
@@ -109,17 +109,17 @@ public final class GalleryGenerator {
                 .append(visual.background().hex()).append("\"/>\n");
         svg.append("    <g fill=\"").append(foreground).append("\">\n");
         int[][] cells = visual.cells();
-        for (int row = 0; row < Bit32Vis.ROWS; row++) {
-            for (int column = 0; column < Bit32Vis.COLUMNS; column++) {
+        for (int row = 0; row < BitSquiggle32.ROWS; row++) {
+            for (int column = 0; column < BitSquiggle32.COLUMNS; column++) {
                 if (cells[row][column] == 0) continue;
                 appendRect(svg, x + 5 + column * 15, y + 5 + row * 15, 10, 10, 5);
             }
         }
 
         byte[] connections = visual.connections();
-        for (int index = 0; index < Bit32Vis.edges().length; index++) {
+        for (int index = 0; index < BitSquiggle32.edges().length; index++) {
             if (connections[index] == 0) continue;
-            Bit32Vis.Edge edge = Bit32Vis.edges()[index];
+            BitSquiggle32.Edge edge = BitSquiggle32.edges()[index];
             int edgeX = x + 5 + edge.startColumn() * 15;
             int edgeY = y + 5 + edge.startRow() * 15;
             if (edge.startRow() == edge.endRow()) {
@@ -129,8 +129,8 @@ public final class GalleryGenerator {
             }
         }
 
-        for (int row = 0; row < Bit32Vis.ROWS - 1; row++) {
-            for (int column = 0; column < Bit32Vis.COLUMNS - 1; column++) {
+        for (int row = 0; row < BitSquiggle32.ROWS - 1; row++) {
+            for (int column = 0; column < BitSquiggle32.COLUMNS - 1; column++) {
                 if (edge(visual, row, column, row, column + 1) == 1
                         && edge(visual, row + 1, column, row + 1, column + 1) == 1
                         && edge(visual, row, column, row + 1, column) == 1
@@ -142,7 +142,7 @@ public final class GalleryGenerator {
         svg.append("    </g>\n");
     }
 
-    private static void appendPixels(StringBuilder svg, Bit32Vis.PixelGrid pixels, int x, int y) {
+    private static void appendPixels(StringBuilder svg, BitSquiggle32.PixelGrid pixels, int x, int y) {
         svg.append("    <rect x=\"").append(x).append("\" y=\"").append(y)
                 .append("\" width=\"16\" height=\"22\" fill=\"")
                 .append(pixels.background().hex()).append("\"/>\n");
@@ -159,11 +159,11 @@ public final class GalleryGenerator {
     }
 
     private static int edge(
-            Bit32Vis.VisSpec visual, int startRow, int startColumn,
+            BitSquiggle32.VisSpec visual, int startRow, int startColumn,
             int endRow, int endColumn) {
-        Bit32Vis.Edge[] edges = Bit32Vis.edges();
+        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
         for (int index = 0; index < edges.length; index++) {
-            Bit32Vis.Edge edge = edges[index];
+            BitSquiggle32.Edge edge = edges[index];
             if (edge.startRow() == startRow && edge.startColumn() == startColumn
                     && edge.endRow() == endRow && edge.endColumn() == endColumn) {
                 return visual.connections()[index];

@@ -13,3 +13,6 @@ __pycache__/
 
 # Temporary files
 *.tmp
+
+# Local research notes; do not commit.
+/research/

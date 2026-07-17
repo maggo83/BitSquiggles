@@ -1,10 +1,10 @@
-# Bit32Vis Specification
+# BitSquiggles / BitSquiggle32 Specification
 
 **Status:** Experimental, unreleased  
 **Implementations:** Java 17 and MicroPython-compatible Python  
 **License:** Grug 2-Clause License
 
-This document is the technical source of truth for Bit32Vis. It is organized
+This document is the technical source of truth for BitSquiggle32. It is organized
 in two levels:
 
 - **Part I** defines the externally observable contract and the coarse
@@ -19,7 +19,7 @@ kept in [README.md](README.md) rather than repeated here.
 
 ### 1. Scope and contract
 
-Bit32Vis maps one unsigned 32-bit integer to a deterministic visual
+BitSquiggle32 maps one unsigned 32-bit integer to a deterministic visual
 specification. The identity-bearing output is a binary mask over the canonical
 connections of a fixed cell grid. An exact binary pixel rendering preserves
 that mask without loss.
@@ -36,7 +36,7 @@ raster. It does not assert that every pair will be easy for a person to
 distinguish after arbitrary scaling, smoothing, display degradation, or brief
 observation.
 
-The caller supplies the 32-bit integer. Bit32Vis does not define how a Bitcoin
+The caller supplies the 32-bit integer. BitSquiggle32 does not define how a Bitcoin
 fingerprint or any other protocol value is derived. Hexadecimal notation is
 most-significant-digit first; `89abcdef` denotes the integer `0x89abcdef`.
 The encoder consumes an integer and otherwise defines no byte order.
@@ -440,7 +440,7 @@ container types and naming conventions differ.
 
 #### 12.1 Java 17
 
-Public static operations on `Bit32Vis`:
+Public static operations on `BitSquiggle32`:
 
 | Operation | Result |
 | --- | --- |

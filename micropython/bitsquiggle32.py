@@ -1,4 +1,4 @@
-"""Injective connection-graph visualization of an unsigned 32-bit value.
+"""BitSquiggle32 injective connection-graph visualization.
 
 The module uses only core MicroPython features plus ``math``. Connections are
 stored in lexical ``(start_row, start_column, end_row, end_column)`` order.
