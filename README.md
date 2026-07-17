@@ -165,6 +165,45 @@ Current state:
 The mathematical uniqueness property should not be confused with a usability
 or security guarantee.
 
+## Rendered examples
+
+Each sheet below is generated directly from the Java reference implementation.
+The three columns are Standard, High Contrast, and Monochrome. Every column
+contains an 80×110 smooth rendering above its native, unscaled 16×22 pixel
+raster. The color changes between styles; the encoded geometry does not.
+
+| Input | Representative behavior | Rendered styles and native rasters |
+| --- | --- | --- |
+| `00000000` | Accepted half-turn (`A+`) | ![Input 00000000 in Standard, High Contrast, and Monochrome](docs/examples/00000000.svg) |
+| `00000001` | Half-turn capacity fallback to `A\|` | ![Input 00000001 in Standard, High Contrast, and Monochrome](docs/examples/00000001.svg) |
+| `00000003` | Accepted slash copy (`A/`) | ![Input 00000003 in Standard, High Contrast, and Monochrome](docs/examples/00000003.svg) |
+| `00000004` | Accepted top/bottom copy (`A-`) | ![Input 00000004 in Standard, High Contrast, and Monochrome](docs/examples/00000004.svg) |
+| `12345678` | Sparse left/right output (`A\|`) | ![Input 12345678 in Standard, High Contrast, and Monochrome](docs/examples/12345678.svg) |
+| `ffffffff` | Denser left/right output (`A\|`) | ![Input ffffffff in Standard, High Contrast, and Monochrome](docs/examples/ffffffff.svg) |
+
+### Keeping examples synchronized
+
+The SVG sheets are generated files, not hand-maintained screenshots. After
+cloning, enable the repository hook once:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook regenerates and stages the gallery during each commit. To regenerate
+it manually after changing rendering behavior, run:
+
+```bash
+mkdir -p out
+javac -d out java/bit32vis/*.java
+java -cp out bit32vis.GalleryGenerator
+```
+
+GitHub Actions also verifies the gallery on every push and pull request. The
+`Verify generated gallery` workflow should be configured as a required status
+check for `main`, so stale documentation cannot be merged if a local hook was
+not enabled.
+
 ## Trying the reference implementations
 
 ### Java 17+
@@ -210,14 +249,20 @@ java/bit32vis/
   Bit32Vis.java            Java reference implementation
   Bit32VisTest.java        Java conformance and property tests
   DemoApp.java             Java Swing demonstration
+  GalleryGenerator.java    Deterministic README example-sheet generator
 micropython/
   bit32vis.py              MicroPython-compatible implementation
   test_bit32vis.py         Python conformance and property tests
+docs/examples/             Generated README example sheets
+.githooks/pre-commit       Regenerates and stages example sheets locally
+.github/workflows/         Verifies generated sheets and test suites in CI
 ```
 
 When behavior, constants, or formats change, update [SPEC.md](SPEC.md) and the
-conformance tests together. Keep project motivation and trade-offs here so the
-same technical rules do not have to be maintained in two documents.
+conformance tests together. When rendering changes, regenerate
+`docs/examples/` with `GalleryGenerator` as described above. Keep project
+motivation and trade-offs here so the same technical rules do not have to be
+maintained in two documents.
 
 ## License
 

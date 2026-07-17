@@ -1,0 +1,8 @@
+#!/bin/sh
+# Keep committed README gallery assets synchronized with the Java renderer.
+set -eu
+
+mkdir -p out
+javac -d out java/bit32vis/*.java
+java -cp out bit32vis.GalleryGenerator
+git add docs/examples
