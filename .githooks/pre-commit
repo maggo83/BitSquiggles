@@ -3,7 +3,7 @@
 set -eu
 
 mkdir -p out
-javac -d out java/bitsquiggles/*.java
+javac -d out java/module-info.java java/bitsquiggles/*.java
 java -cp out bitsquiggles.GalleryGenerator
 java -cp out bitsquiggles.ConformanceFixtureGenerator
 git add docs/examples fixtures/v1.json

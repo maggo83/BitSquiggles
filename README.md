@@ -198,7 +198,7 @@ it manually after changing rendering behavior, run:
 
 ```bash
 mkdir -p out
-javac -d out java/bitsquiggles/*.java
+javac -d out java/module-info.java java/bitsquiggles/*.java
 java -cp out bitsquiggles.GalleryGenerator
 java -cp out bitsquiggles.ConformanceFixtureGenerator
 ```
@@ -216,7 +216,7 @@ From the repository root:
 
 ```bash
 mkdir -p out
-javac -d out java/bitsquiggles/*.java
+javac -d out java/module-info.java java/bitsquiggles/*.java
 java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
 java -cp out bitsquiggles.BitSquigglesDemo
 ```
@@ -227,11 +227,21 @@ pattern through `int`; format it as unsigned when displaying it. Arrays inside
 the returned records are mutable and should be treated as immutable outputs or
 copied before being shared with untrusted code.
 
+The source-only Java module is named `io.github.maggo83.bitsquiggles`. Add the
+`java/` directory to a Java 17+ module path, or copy `java/module-info.java` and
+`java/bitsquiggles/` into an existing module.
+
 ### MicroPython-compatible Python
 
 Copy [micropython/bitsquiggle32.py](micropython/bitsquiggle32.py) to the target and import
 it as `bitsquiggle32`. The corresponding entry points are `spec(...)` and
 `pixels(...)`.
+
+For CPython projects, install the same dependency-free module from a checkout:
+
+```bash
+python3 -m pip install .
+```
 
 Run the tests under CPython or MicroPython:
 
@@ -244,6 +254,18 @@ Native MicroPython targets vary in available RAM. The sampled uniqueness tests
 may need reduced iteration counts on constrained devices; the runtime encoder
 itself uses a small fixed working set.
 
+### JavaScript / TypeScript
+
+The browser core in [web/bitsquiggle32.js](web/bitsquiggle32.js) is a plain ESM
+package with no runtime dependencies or build step. It exports `visualize()`,
+`pixels()`, `parseHex()`, and `formatHex()`. The accompanying
+`bitsquiggle32.d.ts` is optional TypeScript editor support; JavaScript remains
+the executable source.
+
+From the `web/` directory, run `npm pack --dry-run` to inspect the publishable
+artifact. After publication, consumers can install the `bitsquiggles` package
+and import it as ESM.
+
 ## Repository guide
 
 ```text
@@ -255,11 +277,13 @@ java/bitsquiggles/
   BitSquigglesDemo.java    Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
   ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
+java/module-info.java       Source-only Java module descriptor
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
   test_bitsquiggle32.py    Python conformance and property tests
 docs/examples/             Generated README example sheets
 fixtures/v1.json           Versioned cross-language conformance fixture
+pyproject.toml              CPython package metadata for `bitsquiggle32`
 web/                       Static GitHub Pages playground and parity tests
 .githooks/pre-commit       Regenerates and stages example sheets locally
 .github/workflows/         Verifies generated files, runs tests, and deploys Pages

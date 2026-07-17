@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '22'
       - name: Compile Java reference implementation
-        run: javac -d out java/bitsquiggles/*.java
+        run: javac -d out java/module-info.java java/bitsquiggles/*.java
       - name: Run Java tests
         run: java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
       - name: Verify generated example gallery
