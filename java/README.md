@@ -11,9 +11,10 @@ Project purpose, safety boundaries, and release status live in the
 [specification](../SPEC.md).
 
 The public core is `bitsquiggles.BitSquiggle32`. The optional
-`BitSquiggle32RendererSwing` renders Swing/Java2D output, while
-`BitSquigglesDemo` is a separate Swing application that wires controls, views,
-and both renderers together.
+`BitSquiggle32RendererSwing` and `BitSquiggle32RendererJavaFX` render
+Swing/Java2D and JavaFX output respectively, while `BitSquigglesDemo` is a
+separate Swing application that wires controls, views, and both renderers
+together.
 
 ## 2. Include / install
 
@@ -24,7 +25,9 @@ source into an application when JPMS is not required.
 The Java module is `io.github.maggo83.bitsquiggles`. It has no third-party
 or desktop dependency. The optional
 `io.github.maggo83.bitsquiggles.renderer.swing` module and Swing demo use the
-standard JDK `java.desktop` module.
+standard JDK `java.desktop` module. The optional
+`io.github.maggo83.bitsquiggles.renderer.javafx` module requires JavaFX
+`javafx.graphics`.
 
 ## 3. Create a BitSquiggle
 
@@ -67,8 +70,8 @@ The exact dimensions and rendering rules are defined in the
 
 ## 5. Optional smooth rendering
 
-Use the standalone `BitSquiggle32RendererSwing` when an application needs
-smooth Swing/Java2D output:
+Use a standalone framework-qualified renderer when an application needs smooth
+desktop output. Swing/Java2D applications use `BitSquiggle32RendererSwing`:
 
 ```java
 import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
@@ -77,11 +80,22 @@ BitSquiggle32RendererSwing.renderSmooth(graphics, visual, width, height);
 BitSquiggle32RendererSwing.renderRaster(graphics, raster, pixelSize);
 ```
 
-The renderer depends on Java2D but the `BitSquiggle32` core does not. The
-separate `BitSquigglesDemo` application demonstrates renderer use alongside
-input controls and exact raster views. The shared smooth-rendering constraints
-are in the [specification](../SPEC.md#11-smooth-renderer); the shared renderer
-convention is in the [API mapping](../SPEC.md#12-reference-api-mapping).
+JavaFX applications use `BitSquiggle32RendererJavaFX` with a canvas graphics
+context:
+
+```java
+import bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX;
+
+BitSquiggle32RendererJavaFX.renderSmooth(graphics, visual, width, height);
+BitSquiggle32RendererJavaFX.renderRaster(graphics, raster, pixelSize);
+```
+
+The renderers depend on their respective desktop toolkit but the
+`BitSquiggle32` core does not. The separate `BitSquigglesDemo` application
+demonstrates Swing renderer use alongside input controls and exact raster views.
+The shared smooth-rendering constraints are in the
+[specification](../SPEC.md#11-smooth-renderer); the shared renderer convention
+is in the [API mapping](../SPEC.md#12-reference-api-mapping).
 
 ## 6. Test conformance
 
@@ -103,6 +117,16 @@ java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles
 java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator --check
 ```
 
+To compile the optional JavaFX module, point `JAVAFX_LIB` at the JavaFX SDK's
+`lib` directory and compile it independently from the headless core:
+
+```bash
+javac -d out/renderer-javafx \
+    --module-path "out/core:$JAVAFX_LIB" \
+    java/renderer-javafx/module-info.java \
+    java/renderer-javafx/bitsquiggles/renderer/javafx/BitSquiggle32RendererJavaFX.java
+```
+
 The last two commands verify generated README SVGs and the shared versioned
 conformance fixture. The complete conformance requirements are in the
 [specification](../SPEC.md#13-conformance-requirements).
@@ -111,7 +135,8 @@ conformance fixture. The complete conformance requirements are in the
 
 Consume this port as source today: copy the core source into an application or
 add the source module to its build. The core has no third-party runtime
-dependency; the optional Java2D renderer and Swing demo use standard JDK APIs.
+dependency; the optional Java2D renderer and Swing demo use standard JDK APIs,
+and the JavaFX renderer uses JavaFX Graphics.
 
 ## 8. Limitations and compatibility
 
@@ -123,6 +148,7 @@ input; see the [shared input contract](../SPEC.md#1-scope-and-contract).
 | --- | --- | --- |
 | Core module | Java 17+ | JPMS dependency closure is `java.base` only. |
 | Swing renderer and demo | Java 17+ with `java.desktop` | Optional `renderer-swing` module. |
+| JavaFX renderer | Java 17+ with JavaFX Graphics | Optional `renderer-javafx` module. |
 | Reference tests | Java 17+ | Runs on the CI JDK and checks generated artifacts. |
 
 ## 9. License

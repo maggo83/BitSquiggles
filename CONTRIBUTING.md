@@ -25,7 +25,9 @@ Run the checks specified by the port guides and the repository verification
 workflow. At minimum, verify the Java tests and generated artifacts, the Python
 fixture/property tests, and the JavaScript core/playground tests.
 For an LVGL renderer change, also verify exact and smooth output in the target
-simulator and on representative hardware.
+simulator and on representative hardware. For a desktop renderer change,
+compile the optional renderer module against its target UI toolkit and inspect
+both exact and smooth output.
 
 The local Git hook can regenerate generated outputs:
 

@@ -185,6 +185,7 @@ Current state:
 - uniqueness of the canonical connection mask is supported by a structural
   proof, while tests sample the implementation over large input sets;
 - the Java implementation includes an interactive Swing demo;
+- optional Swing/Java2D and JavaFX desktop renderers are available;
 - the MicroPython port includes optional LVGL exact-raster and smooth renderers;
 - no independent security, cryptographic, accessibility, or usability review
   has been completed;
@@ -262,6 +263,9 @@ java/bitsquiggles/
 java/core/module-info.java  Headless core JPMS descriptor
 java/renderer-swing/        Optional Swing/Java2D renderer JPMS module
   bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
+                            Smooth and exact renderers
+java/renderer-javafx/       Optional JavaFX renderer JPMS module
+  bitsquiggles/renderer/javafx/BitSquiggle32RendererJavaFX.java
                             Smooth and exact renderers
 java/README.md              Java integration and rendering guide
 c/
