@@ -31,16 +31,6 @@
       </div>
     </form>
 
-    <section class="details" aria-labelledby="details-title">
-      <h2 id="details-title">Encoding details</h2>
-      <dl>
-        <div><dt>Mixed value</dt><dd id="mixed-value"></dd></div>
-        <div><dt>Preferred mode</dt><dd id="preferred-mode"></dd></div>
-        <div><dt>Rendered mode</dt><dd id="rendered-mode"></dd></div>
-      </dl>
-      <p id="fallback" class="fallback" hidden></p>
-    </section>
-
     <section class="styles" aria-label="Rendered visualizations">
       <article class="visual-card" id="standard-card">
         <div class="card-heading"><h2>Standard</h2><span>smooth + native</span></div>
@@ -57,6 +47,16 @@
         <canvas class="smooth" width="160" height="220" aria-label="Monochrome smooth visualization"></canvas>
         <canvas class="raster" width="16" height="22" aria-label="Monochrome native 16 by 22 pixel raster"></canvas>
       </article>
+    </section>
+
+    <section class="details" aria-labelledby="details-title">
+      <h2 id="details-title">Encoding details</h2>
+      <dl>
+        <div><dt>Mixed value</dt><dd id="mixed-value"></dd></div>
+        <div><dt>Preferred mode</dt><dd id="preferred-mode"></dd></div>
+        <div><dt>Rendered mode</dt><dd id="rendered-mode"></dd></div>
+      </dl>
+      <p id="fallback" class="fallback" hidden></p>
     </section>
   </main>
   <footer>BitSquiggles is a dependency-free experiment in deterministic visual identity.</footer>
