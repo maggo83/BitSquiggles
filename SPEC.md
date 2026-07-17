@@ -452,12 +452,16 @@ Every implementation also exposes the styles Standard, High Contrast, and
 Monochrome and the mode labels `A|`, `A-`, `A+`, and `A/`, using its language's
 normal conventions for constants or enums.
 
-Optional target renderers use the root name `BitSquiggle32Renderer` (adapted to
-the language's filename convention). They expose `renderSmooth()` for a
-canonical visual specification and `renderRaster()` for a pixel grid. The
-former may antialias only according to section 11; the latter paints each pixel
-grid element as an exact whole target pixel or integer-scaled square. A renderer
-is optional and does not change core identity or the exact raster contract.
+Optional target renderers append a framework identifier to the
+`BitSquiggle32Renderer` root, using the target language's normal naming style.
+Examples are Java `BitSquiggle32RendererSwing`, JavaScript
+`bitsquiggle32-renderer-canvas`, Python `bitsquiggle32_renderer_pillow`, and
+MicroPython `bitsquiggle32_renderer_lvgl`. Each renderer exposes
+`renderSmooth()` for a canonical visual specification and `renderRaster()` for
+a pixel grid. The former may antialias only according to section 11; the latter
+paints each pixel grid element as an exact whole target pixel or integer-scaled
+square. A renderer is optional and does not change core identity or the exact
+raster contract.
 
 The following sections define only language-specific container types and
 additional helpers.

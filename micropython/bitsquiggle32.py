@@ -30,6 +30,13 @@ MODES = (
     DIAGONAL_SLASH,
 )
 
+__all__ = (
+    "ROWS", "COLUMNS", "EDGE_COUNT", "PIXEL_WIDTH", "PIXEL_HEIGHT", "EDGES",
+    "STANDARD", "HIGH_CONTRAST", "MONOCHROME", "STYLES",
+    "LEFT_RIGHT", "TOP_BOTTOM", "HALF_TURN", "DIAGONAL_SLASH", "MODES",
+    "mix32", "free_connection_count", "matches_mode", "spec", "pixels",
+)
+
 BASE_L_MIN = 0.5
 BASE_L_MAX = 0.7
 CHROMA_MIN = 0.05

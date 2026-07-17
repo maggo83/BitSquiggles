@@ -2,8 +2,11 @@
 # Keep generated documentation and cross-language fixtures synchronized with Java.
 set -eu
 
-mkdir -p out
-javac -d out java/module-info.java java/bitsquiggles/*.java
-java -cp out bitsquiggles.GalleryGenerator
-java -cp out bitsquiggles.ConformanceFixtureGenerator
+mkdir -p out/core
+javac -d out/core java/core/module-info.java \
+	java/bitsquiggles/BitSquiggle32.java \
+	java/bitsquiggles/GalleryGenerator.java \
+	java/bitsquiggles/ConformanceFixtureGenerator.java
+java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.GalleryGenerator
+java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator
 git add docs/examples fixtures/v1.json

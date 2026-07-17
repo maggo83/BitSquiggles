@@ -11,20 +11,20 @@ Project purpose, safety boundaries, and release status live in the
 [specification](../SPEC.md).
 
 The public core is `bitsquiggles.BitSquiggle32`. The optional
-`BitSquiggle32Renderer` renders smooth Java2D output, while
+`BitSquiggle32RendererSwing` renders Swing/Java2D output, while
 `BitSquigglesDemo` is a separate Swing application that wires controls, views,
 and both renderers together.
 
 ## 2. Include / install
 
-This port is currently source-only. Copy `module-info.java` and the
-`bitsquiggles/` source directory into a Java 17+ project, or compile the source
-alongside an application.
+This port is currently source-only. For a dependency-free JPMS core, compile
+`core/module-info.java` with `bitsquiggles/BitSquiggle32.java`. Copy that core
+source into an application when JPMS is not required.
 
 The Java module is `io.github.maggo83.bitsquiggles`. It has no third-party
-runtime dependencies. The optional Swing renderer and demo use the standard JDK
-`java.desktop` module. An application that needs only the core can include
-`BitSquiggle32.java` without either optional class.
+or desktop dependency. The optional
+`io.github.maggo83.bitsquiggles.renderer.swing` module and Swing demo use the
+standard JDK `java.desktop` module.
 
 ## 3. Create a BitSquiggle
 
@@ -67,12 +67,14 @@ The exact dimensions and rendering rules are defined in the
 
 ## 5. Optional smooth rendering
 
-Use the standalone `BitSquiggle32Renderer` when an application needs smooth
-Java2D output:
+Use the standalone `BitSquiggle32RendererSwing` when an application needs
+smooth Swing/Java2D output:
 
 ```java
-BitSquiggle32Renderer.renderSmooth(graphics, visual, width, height);
-BitSquiggle32Renderer.renderRaster(graphics, raster, pixelSize);
+import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
+
+BitSquiggle32RendererSwing.renderSmooth(graphics, visual, width, height);
+BitSquiggle32RendererSwing.renderRaster(graphics, raster, pixelSize);
 ```
 
 The renderer depends on Java2D but the `BitSquiggle32` core does not. The
@@ -86,11 +88,19 @@ convention is in the [API mapping](../SPEC.md#12-reference-api-mapping).
 From the repository root:
 
 ```bash
-mkdir -p out
-javac -d out java/module-info.java java/bitsquiggles/*.java
-java --module-path out --module io.github.maggo83.bitsquiggles/bitsquiggles.BitSquiggle32Test
-java -cp out bitsquiggles.GalleryGenerator --check
-java -cp out bitsquiggles.ConformanceFixtureGenerator --check
+mkdir -p out/core out/renderer-swing out/test
+javac -d out/core java/core/module-info.java \
+    java/bitsquiggles/BitSquiggle32.java \
+    java/bitsquiggles/GalleryGenerator.java \
+    java/bitsquiggles/ConformanceFixtureGenerator.java
+javac -d out/renderer-swing --module-path out/core java/renderer-swing/module-info.java \
+    java/renderer-swing/bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
+javac -d out/test -cp out/core:out/renderer-swing \
+    java/bitsquiggles/BitSquiggle32Test.java \
+    java/bitsquiggles/BitSquigglesDemo.java
+java -cp out/core:out/renderer-swing:out/test bitsquiggles.BitSquiggle32Test
+java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.GalleryGenerator --check
+java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator --check
 ```
 
 The last two commands verify generated README SVGs and the shared versioned
@@ -108,6 +118,12 @@ dependency; the optional Java2D renderer and Swing demo use standard JDK APIs.
 This implementation requires Java 17 or later because it uses records and
 modern switch syntax. It accepts every `int` bit pattern as an unsigned 32-bit
 input; see the [shared input contract](../SPEC.md#1-scope-and-contract).
+
+| Surface | Verified target | Notes |
+| --- | --- | --- |
+| Core module | Java 17+ | JPMS dependency closure is `java.base` only. |
+| Swing renderer and demo | Java 17+ with `java.desktop` | Optional `renderer-swing` module. |
+| Reference tests | Java 17+ | Runs on the CI JDK and checks generated artifacts. |
 
 ## 9. License
 

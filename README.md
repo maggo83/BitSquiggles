@@ -14,6 +14,31 @@ MicroPython-compatible Python, and JavaScript. The algorithm and conformance
 requirements are defined in [SPEC.md](SPEC.md); this README deliberately stays
 at the project and design-rationale level.
 
+## Rendered examples
+
+Each sheet below is generated directly from the Java reference implementation.
+The three columns are Standard, High Contrast, and Monochrome. Every column
+contains an 80×110 smooth rendering above its native, unscaled 16×22 pixel
+raster. The color changes between styles; the encoded geometry does not.
+
+**Try any value in the [interactive playground](https://maggo83.github.io/BitSquiggles/).**
+It runs entirely in the browser and creates a shareable link for each value.
+
+| Input | Representative behavior | Rendered styles and native rasters |
+| --- | --- | --- |
+| `00000000` | Accepted half-turn (`A+`) | ![Input 00000000 in Standard, High Contrast, and Monochrome](docs/examples/00000000.svg) |
+| `00000001` | Half-turn capacity fallback to `A\|` | ![Input 00000001 in Standard, High Contrast, and Monochrome](docs/examples/00000001.svg) |
+| `00000003` | Accepted slash copy (`A/`) | ![Input 00000003 in Standard, High Contrast, and Monochrome](docs/examples/00000003.svg) |
+| `00000004` | Accepted top/bottom copy (`A-`) | ![Input 00000004 in Standard, High Contrast, and Monochrome](docs/examples/00000004.svg) |
+| `12345678` | Sparse left/right output (`A\|`) | ![Input 12345678 in Standard, High Contrast, and Monochrome](docs/examples/12345678.svg) |
+| `ffffffff` | Denser left/right output (`A\|`) | ![Input ffffffff in Standard, High Contrast, and Monochrome](docs/examples/ffffffff.svg) |
+
+## Quick start
+
+Choose the target language in the [reference implementation guides](#reference-implementation-guides).
+Each guide is the single source for its installation, core API, exact-raster,
+optional-renderer, and test instructions.
+
 ## Why this project exists
 
 Eight hexadecimal digits are compact but tiring to compare, especially on a
@@ -166,26 +191,11 @@ Current state:
 The mathematical uniqueness property should not be confused with a usability
 or security guarantee.
 
-## Rendered examples
+Release versioning and publication requirements are defined in
+[RELEASING.md](RELEASING.md); released changes are recorded in
+[CHANGELOG.md](CHANGELOG.md).
 
-Each sheet below is generated directly from the Java reference implementation.
-The three columns are Standard, High Contrast, and Monochrome. Every column
-contains an 80×110 smooth rendering above its native, unscaled 16×22 pixel
-raster. The color changes between styles; the encoded geometry does not.
-
-**Try any value in the [interactive playground](https://maggo83.github.io/BitSquiggles/).**
-It runs entirely in the browser and creates a shareable link for each value.
-
-| Input | Representative behavior | Rendered styles and native rasters |
-| --- | --- | --- |
-| `00000000` | Accepted half-turn (`A+`) | ![Input 00000000 in Standard, High Contrast, and Monochrome](docs/examples/00000000.svg) |
-| `00000001` | Half-turn capacity fallback to `A\|` | ![Input 00000001 in Standard, High Contrast, and Monochrome](docs/examples/00000001.svg) |
-| `00000003` | Accepted slash copy (`A/`) | ![Input 00000003 in Standard, High Contrast, and Monochrome](docs/examples/00000003.svg) |
-| `00000004` | Accepted top/bottom copy (`A-`) | ![Input 00000004 in Standard, High Contrast, and Monochrome](docs/examples/00000004.svg) |
-| `12345678` | Sparse left/right output (`A\|`) | ![Input 12345678 in Standard, High Contrast, and Monochrome](docs/examples/12345678.svg) |
-| `ffffffff` | Denser left/right output (`A\|`) | ![Input ffffffff in Standard, High Contrast, and Monochrome](docs/examples/ffffffff.svg) |
-
-### Keeping examples synchronized
+## Keeping examples synchronized
 
 The SVG sheets are generated files, not hand-maintained screenshots. After
 cloning, enable the repository hook once:
@@ -198,10 +208,13 @@ The hook regenerates and stages the gallery during each commit. To regenerate
 it manually after changing rendering behavior, run:
 
 ```bash
-mkdir -p out
-javac -d out java/module-info.java java/bitsquiggles/*.java
-java -cp out bitsquiggles.GalleryGenerator
-java -cp out bitsquiggles.ConformanceFixtureGenerator
+mkdir -p out/core
+javac -d out/core java/core/module-info.java \
+  java/bitsquiggles/BitSquiggle32.java \
+  java/bitsquiggles/GalleryGenerator.java \
+  java/bitsquiggles/ConformanceFixtureGenerator.java
+java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.GalleryGenerator
+java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator
 ```
 
 GitHub Actions also verifies the gallery on every push and pull request. The
@@ -230,14 +243,20 @@ covered by each port guide.
 ```text
 README.md                  project purpose, audience, rationale, and status
 SPEC.md                    normative behavior and implementation details
+CONTRIBUTING.md            contribution workflow and validation expectations
+AGENTS.md                  concise guide for coding agents
+RELEASING.md               shared versioning and release procedure
+CHANGELOG.md               released and planned change history
 java/bitsquiggles/
   BitSquiggle32.java       Java reference implementation
   BitSquiggle32Test.java   Java conformance and property tests
-  BitSquiggle32Renderer.java Optional Java2D smooth renderer
   BitSquigglesDemo.java    Java Swing demonstration
   GalleryGenerator.java    Deterministic README example-sheet generator
   ConformanceFixtureGenerator.java Java-generated cross-language test fixtures
-java/module-info.java       Source-only Java module descriptor
+java/core/module-info.java  Headless core JPMS descriptor
+java/renderer-swing/        Optional Swing/Java2D renderer JPMS module
+  bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
+                            Smooth and exact renderers
 java/README.md              Java integration and rendering guide
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
@@ -247,7 +266,7 @@ docs/examples/             Generated README example sheets
 fixtures/v1.json           Versioned cross-language conformance fixture
 pyproject.toml              CPython package metadata for `bitsquiggle32`
 web/                       Static GitHub Pages playground, ESM package, and tests
-  bitsquiggle32-renderer.js Optional Canvas 2D renderer
+  bitsquiggle32-renderer-canvas.js Optional Canvas 2D renderer
   playground.js             Live playground application
 web/README.md               JavaScript and TypeScript integration guide
 .githooks/pre-commit       Regenerates and stages example sheets locally

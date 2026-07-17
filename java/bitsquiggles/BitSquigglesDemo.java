@@ -5,13 +5,16 @@
 // 2. not sue grug
 //
 // Run from the repo root:
-//   javac -d out java/bitsquiggles/*.java && java -cp out bitsquiggles.BitSquigglesDemo
+//   javac -d out java/bitsquiggles/*.java \
+//     java/renderer-swing/bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java \
+//     && java -cp out bitsquiggles.BitSquigglesDemo
 
 package bitsquiggles;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -225,7 +228,7 @@ public class BitSquigglesDemo {
             if (spec == null) return;
             Graphics2D g2 = (Graphics2D) g.create();
             try {
-                BitSquiggle32Renderer.renderSmooth(g2, spec, getWidth(), getHeight());
+                BitSquiggle32RendererSwing.renderSmooth(g2, spec, getWidth(), getHeight());
             } finally {
                 g2.dispose();
             }
@@ -258,7 +261,7 @@ public class BitSquigglesDemo {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             try {
-                BitSquiggle32Renderer.renderRaster(g2, grid, cellPx);
+                BitSquiggle32RendererSwing.renderRaster(g2, grid, cellPx);
             } finally {
                 g2.dispose();
             }

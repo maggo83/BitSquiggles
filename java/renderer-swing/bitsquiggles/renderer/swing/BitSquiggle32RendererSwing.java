@@ -1,11 +1,12 @@
-// BitSquiggles — optional Java2D renderer.
+// BitSquiggles — optional Swing/Java2D renderer.
 //
 // Grug 2-Clause License
 // 1. do what want
 // 2. not sue grug
 
-package bitsquiggles;
+package bitsquiggles.renderer.swing;
 
+import bitsquiggles.BitSquiggle32;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -13,10 +14,10 @@ import java.awt.geom.Area;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 
-/** Optional Java2D renderer for a {@link BitSquiggle32.VisSpec}. */
-public final class BitSquiggle32Renderer {
+/** Optional Swing/Java2D renderer for a {@link BitSquiggle32.VisSpec}. */
+public final class BitSquiggle32RendererSwing {
 
-    private BitSquiggle32Renderer() {}
+    private BitSquiggle32RendererSwing() {}
 
     /**
      * Paint a smooth presentation using the canonical 16×22 coordinate space.

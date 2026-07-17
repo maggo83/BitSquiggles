@@ -19,15 +19,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Compile Java reference implementation
-        run: javac -d out java/module-info.java java/bitsquiggles/*.java
+      - name: Compile headless Java core module
+        run: |
+          mkdir -p out/core out/renderer-swing out/test
+          javac -d out/core java/core/module-info.java \
+            java/bitsquiggles/BitSquiggle32.java \
+            java/bitsquiggles/GalleryGenerator.java \
+            java/bitsquiggles/ConformanceFixtureGenerator.java
+      - name: Compile optional Java2D renderer module
+        run: |
+          javac -d out/renderer-swing --module-path out/core java/renderer-swing/module-info.java \
+            java/renderer-swing/bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
+      - name: Compile Java test and demo sources
+        run: |
+          javac -d out/test -cp out/core:out/renderer-swing \
+            java/bitsquiggles/BitSquiggle32Test.java \
+            java/bitsquiggles/BitSquigglesDemo.java
       - name: Run Java tests
-        run: java -Xmx512m -cp out bitsquiggles.BitSquiggle32Test
+        run: java -Xmx512m -cp out/core:out/renderer-swing:out/test bitsquiggles.BitSquiggle32Test
       - name: Verify generated example gallery
-        run: java -cp out bitsquiggles.GalleryGenerator --check
+        run: java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.GalleryGenerator --check
       - name: Verify generated conformance fixtures
-        run: java -cp out bitsquiggles.ConformanceFixtureGenerator --check
-      - name: Run browser parity tests
-        run: node web/bitsquiggle32.test.mjs
+        run: java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator --check
+      - name: Run JavaScript core and playground tests
+        run: npm test --prefix web
       - name: Run MicroPython-compatible tests under CPython
         run: python3 micropython/test_bitsquiggle32.py

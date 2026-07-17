@@ -1,0 +1,13 @@
+# BitSquiggles agent guide
+
+- [SPEC.md](SPEC.md) is the normative source for algorithm behavior, common API
+  names, exact raster rules, and conformance requirements.
+- [README.md](README.md) owns project purpose, safety boundaries, status, and
+  the port-guide index.
+- Port README files own installation and target-specific integration details.
+- `fixtures/v1.json` and `docs/examples/` are Java-generated tracked outputs;
+  validate them with their Java generators after relevant changes.
+- Preserve the dependency-free core and optional core/renderer/demo separation.
+- Any core change requires cross-port conformance validation.
+- Use [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and
+  validation expectations.

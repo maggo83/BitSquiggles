@@ -4,6 +4,7 @@
 
 package bitsquiggles;
 
+import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
@@ -205,7 +206,7 @@ public final class BitSquiggle32Test {
         BufferedImage image = new BufferedImage(160, 220, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = image.createGraphics();
         try {
-            BitSquiggle32Renderer.renderSmooth(
+            BitSquiggle32RendererSwing.renderSmooth(
                     graphics, BitSquiggle32.spec(0x12345678), image.getWidth(), image.getHeight());
         } finally {
             graphics.dispose();
@@ -217,7 +218,7 @@ public final class BitSquiggle32Test {
                 grid.width() * 4, grid.height() * 4, BufferedImage.TYPE_INT_ARGB);
         Graphics2D rasterGraphics = rasterImage.createGraphics();
         try {
-            BitSquiggle32Renderer.renderRaster(rasterGraphics, grid, 4);
+            BitSquiggle32RendererSwing.renderRaster(rasterGraphics, grid, 4);
         } finally {
             rasterGraphics.dispose();
         }

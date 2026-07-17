@@ -92,6 +92,13 @@ Native MicroPython targets vary in available RAM; reduce long sampled test
 loops on constrained devices if needed. See the
 [shared input contract](../SPEC.md#1-scope-and-contract) for value semantics.
 
+| Surface | Verified target | Notes |
+| --- | --- | --- |
+| CPython package | Python 3.8+ | Declared in package metadata; CI uses Python 3.12. |
+| CPython conformance | Python 3.12 in CI | Consumes every shared fixture vector. |
+| MicroPython core | Targets with `math` support | Vendor the single core file; no device-specific CI target is claimed. |
+| MicroPython testing | Target-dependent | Run the property harness on-device as resources permit; full fixture parity runs on the host. |
+
 ## 9. License
 
 Grug 2-Clause License. See the repository-level [LICENSE](../LICENSE).

@@ -1,5 +1,5 @@
 import { STYLES, formatHex, parseHex, pixels, spec } from "./bitsquiggle32.js";
-import { renderRaster, renderSmooth } from "./bitsquiggle32-renderer.js";
+import { renderRaster, renderSmooth } from "./bitsquiggle32-renderer-canvas.js";
 
 const form = document.querySelector("#value-form");
 const input = document.querySelector("#value");

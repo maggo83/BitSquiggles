@@ -46,6 +46,16 @@ def test_edges_and_mode_capacities():
               "free count %s" % mode)
 
 
+def test_public_surface():
+    expected = {
+        "ROWS", "COLUMNS", "EDGE_COUNT", "PIXEL_WIDTH", "PIXEL_HEIGHT", "EDGES",
+        "STANDARD", "HIGH_CONTRAST", "MONOCHROME", "STYLES",
+        "LEFT_RIGHT", "TOP_BOTTOM", "HALF_TURN", "DIAGONAL_SLASH", "MODES",
+        "mix32", "free_connection_count", "matches_mode", "spec", "pixels",
+    }
+    check(set(bitsquiggle32.__all__) == expected, "declared public surface")
+
+
 def test_modes_and_canonical_priority():
     seen = {mode: False for mode in bitsquiggle32.MODES}
     saw_fallback = False
@@ -163,8 +173,48 @@ def test_input_validation():
     expect_failure(lambda: bitsquiggle32.spec(0, "unknown"), "reject style")
 
 
+def test_shared_fixture_under_cpython():
+    try:
+        import json
+        import os
+        import sys
+    except ImportError:
+        return
+    implementation = getattr(getattr(sys, "implementation", None), "name", "")
+    if implementation != "cpython":
+        return
+
+    fixture_path = os.path.join(
+        os.path.dirname(__file__), "..", "fixtures", "v1.json")
+    with open(fixture_path, "r", encoding="utf-8") as fixture_file:
+        fixture = json.load(fixture_file)
+    check(fixture["schema"] == "bitsquiggles-conformance", "known fixture schema")
+    check(fixture["version"] == 1, "known fixture version")
+    check(fixture["dimensions"] == {
+        "rows": 7, "columns": 5, "edges": 58, "pixelWidth": 16, "pixelHeight": 22,
+    }, "known fixture dimensions")
+    for vector in fixture["vectors"]:
+        bits = int(vector["input"], 16)
+        visual = bitsquiggle32.spec(bits)
+        grid = bitsquiggle32.pixels(bits)
+        check("%08x" % visual["mixed"] == vector["mixed"], "fixture mixed")
+        check("".join(str(value) for value in visual["connections"]) == vector["connections"],
+              "fixture connections")
+        check(visual["preferred_mode"] == vector["preferredMode"], "fixture preferred mode")
+        check(visual["actual_mode"] == vector["actualMode"], "fixture actual mode")
+        check(visual["fallback"] == vector["fallback"], "fixture fallback")
+        check("".join(str(value) for value in grid["pixels"]) == vector["pixels"],
+              "fixture pixels")
+        for style, colors in vector["styles"].items():
+            styled = bitsquiggle32.spec(bits, style)
+            check(styled["background"]["hex"] == colors["background"], "fixture background")
+            check(styled["foreground"]["hex"] == colors["foreground"], "fixture foreground")
+            check(styled["connections"] == visual["connections"], "fixture style geometry")
+
+
 def main():
     test_edges_and_mode_capacities()
+    test_public_surface()
     test_modes_and_canonical_priority()
     test_input_bit_avalanche()
     test_sampled_monochrome_injectivity()
@@ -172,6 +222,7 @@ def main():
     test_colors_parity_and_golden_vector()
     test_slash_wrap_regression()
     test_input_validation()
+    test_shared_fixture_under_cpython()
     print("BitSquiggles MicroPython tests passed (%d checks)" % _checks)
 
 

@@ -9,23 +9,23 @@
       "import": "./bitsquiggle32.js",
       "default": "./bitsquiggle32.js"
     },
-    "./renderer": {
-      "types": "./bitsquiggle32-renderer.d.ts",
-      "import": "./bitsquiggle32-renderer.js",
-      "default": "./bitsquiggle32-renderer.js"
+    "./renderer-canvas": {
+      "types": "./bitsquiggle32-renderer-canvas.d.ts",
+      "import": "./bitsquiggle32-renderer-canvas.js",
+      "default": "./bitsquiggle32-renderer-canvas.js"
     }
   },
   "types": "./bitsquiggle32.d.ts",
   "files": [
     "bitsquiggle32.js",
     "bitsquiggle32.d.ts",
-    "bitsquiggle32-renderer.js",
-    "bitsquiggle32-renderer.d.ts",
+    "bitsquiggle32-renderer-canvas.js",
+    "bitsquiggle32-renderer-canvas.d.ts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "test": "node bitsquiggle32.test.mjs",
+    "test": "node bitsquiggle32.test.mjs && node playground.test.mjs",
     "pack:check": "npm pack --dry-run"
   },
   "license": "SEE LICENSE IN LICENSE",

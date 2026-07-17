@@ -72,7 +72,7 @@ playground application. Import it when a browser application needs the bundled
 smooth presentation:
 
 ```js
-import { renderRaster, renderSmooth } from "bitsquiggles/renderer";
+import { renderRaster, renderSmooth } from "bitsquiggles/renderer-canvas";
 
 renderSmooth(canvas, visual);
 renderRaster(rasterCanvas, raster);
@@ -98,7 +98,7 @@ checks every shared vector. The complete conformance requirements are in the
 ## 7. Package / release notes
 
 The `bitsquiggles` package exposes the core at `bitsquiggles` and the optional
-Canvas renderer at `bitsquiggles/renderer`. Both include TypeScript declarations.
+Canvas renderer at `bitsquiggles/renderer-canvas`. Both include TypeScript declarations.
 Use the core alone when a different graphics toolkit is preferred.
 
 ## 8. Limitations and compatibility
@@ -106,6 +106,12 @@ Use the core alone when a different graphics toolkit is preferred.
 The core is standard ESM; consumers without ESM support need a target-specific
 integration layer. See the [shared input contract](../SPEC.md#1-scope-and-contract)
 for 32-bit value semantics.
+
+| Surface | Verified target | Notes |
+| --- | --- | --- |
+| ESM core and package tests | Node.js 22 in CI | Uses native ESM and checks every shared fixture vector. |
+| Canvas renderer | Modern browser with Canvas 2D and `roundRect()` | Optional `renderer-canvas` subpath. |
+| Playground | Modern browser with ESM, Canvas 2D, Web Crypto, and Clipboard APIs | Node smoke tests cover DOM wiring with fakes; browser compatibility is not otherwise version-pinned. |
 
 ## 9. License
 
