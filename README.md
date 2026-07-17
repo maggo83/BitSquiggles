@@ -10,9 +10,9 @@ master-key fingerprint shown by a hardware wallet with the fingerprint shown
 by its companion application.
 
 The project provides dependency-free reference implementations for Java 17,
-MicroPython-compatible Python, and JavaScript. The algorithm and conformance
-requirements are defined in [SPEC.md](SPEC.md); this README deliberately stays
-at the project and design-rationale level.
+MicroPython-compatible Python, JavaScript, and C99. The algorithm and
+conformance requirements are defined in [SPEC.md](SPEC.md); this README
+deliberately stays at the project and design-rationale level.
 
 ## Rendered examples
 
@@ -174,8 +174,8 @@ BitSquiggles is **experimental and unreleased**.
 
 Current state:
 
-- Java 17, MicroPython-compatible Python, and JavaScript implementations are
-  present;
+- Java 17, MicroPython-compatible Python, JavaScript, and C99 implementations
+  are present;
 - each implementation includes a dependency-free test suite;
 - the implementations share documented conformance vectors;
 - uniqueness of the canonical connection mask is supported by a structural
@@ -233,6 +233,7 @@ conformance testing, package/release notes, and limitations/compatibility.
 | Java | Java 17+ | [Java guide](java/README.md) |
 | Python | CPython and MicroPython | [Python and MicroPython guide](micropython/README.md) |
 | JavaScript | Browser, Node, and TypeScript consumers | [JavaScript and TypeScript guide](web/README.md) |
+| C99 | Native and embedded C99 consumers | [C99 guide](c/README.md) |
 
 The canonical identity and rendering requirements are defined once in the
 [specification](SPEC.md#1-scope-and-contract). Smooth-renderer integration is
@@ -258,6 +259,11 @@ java/renderer-swing/        Optional Swing/Java2D renderer JPMS module
   bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
                             Smooth and exact renderers
 java/README.md              Java integration and rendering guide
+c/
+  bitsquiggle32.h           C99 public core API
+  bitsquiggle32.c           C99 core implementation
+  test_bitsquiggle32.c      C99 conformance and property tests
+  README.md                 C99 integration guide
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
   test_bitsquiggle32.py    Python conformance and property tests

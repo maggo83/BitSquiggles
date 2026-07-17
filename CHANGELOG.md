@@ -6,6 +6,7 @@ rules are defined in [RELEASING.md](RELEASING.md).
 ## Unreleased
 
 - No published release artifacts yet.
+- Added a dependency-free C99 core with shared-fixture conformance coverage.
 
 ## 0.1.0 — planned initial release
 
