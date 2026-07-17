@@ -5,10 +5,10 @@ procedure. It applies to the project and every maintained port.
 
 ## Version policy
 
-BitSquiggles has one shared version across the Java, Python/MicroPython, and
-JavaScript/TypeScript ports. A release tag, package metadata, changelog entry,
-fixture schema compatibility statement, and published artifacts use that same
-version.
+BitSquiggles has one shared version across the Java, Python/MicroPython,
+JavaScript/TypeScript, and C99 ports. A release tag, package metadata,
+changelog entry, fixture schema compatibility statement, and published
+artifacts use that same version.
 
 - A core behavior, normative API, exact-raster, color, or fixture change updates
   every maintained port in the same release.
@@ -47,6 +47,8 @@ published yet.
   vendoring.
 - The JavaScript package publishes the dependency-free ESM core and explicitly
   named optional renderer subpaths.
+- The C99 distribution consists of the dependency-free header, source, and
+  conformance harness; it has no renderer dependency.
 - Publication to Maven Central, PyPI, or npm requires an approved maintainer
   account and the registry name reserved by the project.
 

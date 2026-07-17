@@ -524,6 +524,24 @@ one as an unsigned hexadecimal value. `VisSpec` and `PixelGrid` use camel-case
 property names. The published TypeScript declarations are part of the package
 interface.
 
+#### 12.4 C99
+
+Public operations declared by `bitsquiggle32.h`:
+
+| Operation | Result |
+| --- | --- |
+| `bitsquiggle32_mix32(uint32_t)` | mixed unsigned 32-bit value |
+| `bitsquiggle32_free_connection_count(Bitsquiggle32Mode)` | free-class count |
+| `bitsquiggle32_matches_mode(...)` | complete-family membership |
+| `bitsquiggle32_spec(uint32_t, style, output)` | fills `Bitsquiggle32Spec` |
+| `bitsquiggle32_pixels(uint32_t, style, output)` | fills `Bitsquiggle32PixelGrid` |
+
+`Bitsquiggle32Spec` and `Bitsquiggle32PixelGrid` are caller-owned structures.
+The two output operations return zero on success and `-1` for an invalid style
+or null output pointer. C represents the whole input domain with `uint32_t`.
+Styles and modes are enums, and `bitsquiggle32_mode_label()` returns the shared
+mode labels.
+
 ### 13. Conformance requirements
 
 A conforming implementation must satisfy all of the following:
