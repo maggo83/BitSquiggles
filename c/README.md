@@ -49,30 +49,25 @@ and polarity metadata. Use `bitsquiggle32_mode_label()` to obtain `A|`, `A-`,
 
 ## 4. Render the exact raster
 
-`bitsquiggle32_pixels()` fills a caller-owned `Bitsquiggle32PixelGrid`. Its
-352 `pixels` values are row-major bytes: `0` for background and `1` for
-foreground. Draw every value as one target pixel or an integer-scaled square.
+`bitsquiggle32_pixels()` fills a caller-owned `Bitsquiggle32PixelGrid`. It is
+the normative $16\times22$ binary raster: render its row-major `pixels` values
+as whole target pixels or integer-scaled squares; `0` is background and `1` is
+foreground. See the complete [exact-raster rules](../SPEC.md#10-exact-binary-renderer).
 
 ```c
 Bitsquiggle32PixelGrid raster;
 bitsquiggle32_pixels(value, BITSQUIGGLE32_STANDARD, &raster);
-for (uint8_t y = 0; y < raster.height; ++y) {
-    for (uint8_t x = 0; x < raster.width; ++x) {
-        bool on = raster.pixels[y * raster.width + x] != 0;
-        /* Draw an integer-scaled foreground or background square. */
-    }
-}
 ```
-
-The dimensions and exact rendering rules are defined in the
-[normative raster specification](../SPEC.md#10-exact-binary-renderer).
 
 ## 5. Optional smooth rendering
 
-No renderer is bundled. A framework-specific renderer remains optional and
-must use the shared `renderSmooth()`/`renderRaster()` semantics and a
-framework-qualified name, as defined in the
-[reference API mapping](../SPEC.md#12-reference-api-mapping).
+Smooth rendering is presentation only: it must preserve selected and
+unselected connections without changing the exact-raster identity. Follow the
+[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
+naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+
+This port bundles no renderer. Add a framework-specific adapter only when the
+target requires one.
 
 ## 6. Test conformance
 

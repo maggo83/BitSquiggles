@@ -53,49 +53,53 @@ or copy them before sharing them.
 
 ## 4. Render the exact raster
 
-`raster.pixels()` is a row-major byte array. `0` means background and `1` means
-foreground. Render every element as one whole pixel or an integer-scaled square:
+The `pixels()` result is the normative $16\times22$ binary raster. Render its
+row-major `pixels()` values as whole target pixels or integer-scaled squares;
+`0` is background and `1` is foreground. See the complete
+[exact-raster rules](../SPEC.md#10-exact-binary-renderer).
+
+### 4.1 Swing and Java2D renderer
 
 ```java
-for (int y = 0; y < raster.height(); y++) {
-    for (int x = 0; x < raster.width(); x++) {
-        boolean on = raster.pixels()[y * raster.width() + x] != 0;
-        // Fill one scale-by-scale rectangle in the foreground or background color.
-    }
-}
+import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
+
+BitSquiggle32RendererSwing.renderRaster(graphics, raster, pixelSize);
 ```
 
-The exact dimensions and rendering rules are defined in the
-[normative raster specification](../SPEC.md#10-exact-binary-renderer).
+### 4.2 JavaFX renderer
+
+```java
+import bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX;
+
+BitSquiggle32RendererJavaFX.renderRaster(graphics, raster, pixelSize);
+```
 
 ## 5. Optional smooth rendering
 
-Use a standalone framework-qualified renderer when an application needs smooth
-desktop output. Swing/Java2D applications use `BitSquiggle32RendererSwing`:
+Smooth rendering is presentation only: it must preserve selected and
+unselected connections without changing the exact-raster identity. Follow the
+[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
+naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+
+### 5.1 Swing and Java2D renderer
 
 ```java
 import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
 
 BitSquiggle32RendererSwing.renderSmooth(graphics, visual, width, height);
-BitSquiggle32RendererSwing.renderRaster(graphics, raster, pixelSize);
 ```
 
-JavaFX applications use `BitSquiggle32RendererJavaFX` with a canvas graphics
-context:
+### 5.2 JavaFX renderer
 
 ```java
 import bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX;
 
 BitSquiggle32RendererJavaFX.renderSmooth(graphics, visual, width, height);
-BitSquiggle32RendererJavaFX.renderRaster(graphics, raster, pixelSize);
 ```
 
 The renderers depend on their respective desktop toolkit but the
 `BitSquiggle32` core does not. The separate `BitSquigglesDemo` application
 demonstrates Swing renderer use alongside input controls and exact raster views.
-The shared smooth-rendering constraints are in the
-[specification](../SPEC.md#11-smooth-renderer); the shared renderer convention
-is in the [API mapping](../SPEC.md#12-reference-api-mapping).
 
 ## 6. Test conformance
 

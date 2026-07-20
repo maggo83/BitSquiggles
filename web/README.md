@@ -47,43 +47,41 @@ handling are defined in the
 
 ## 4. Render the exact raster
 
-`visual.pixels` is a row-major $16\times22$ `Uint8Array`: `0` is background and
-`1` is foreground. Render each value as one whole pixel:
+The `pixels()` result is the normative $16\times22$ binary raster. Render its
+row-major values as whole target pixels or nearest-neighbor integer-scaled
+squares; `0` is background and `1` is foreground. See the complete
+[exact-raster rules](../SPEC.md#10-exact-binary-renderer).
+
+### 4.1 Canvas 2D renderer
 
 ```js
-const context = canvas.getContext("2d");
-for (let y = 0; y < 22; y += 1) {
-  for (let x = 0; x < 16; x += 1) {
-    context.fillStyle = visual.pixels[y * 16 + x]
-      ? visual.foreground : visual.background;
-    context.fillRect(x, y, 1, 1);
-  }
-}
-```
+import { renderRaster } from "bitsquiggles/renderer-canvas";
 
-The exact dimensions and rendering rules are defined in the
-[normative raster specification](../SPEC.md#10-exact-binary-renderer). For
-larger output, use nearest-neighbor scaling.
-
-## 5. Optional smooth rendering
-
-The optional Canvas 2D renderer is separate from both the core and the
-playground application. Import it when a browser application needs the bundled
-smooth presentation:
-
-```js
-import { renderRaster, renderSmooth } from "bitsquiggles/renderer-canvas";
-
-renderSmooth(canvas, visual);
 renderRaster(rasterCanvas, raster);
 ```
 
+## 5. Optional smooth rendering
+
+Smooth rendering is presentation only: it must preserve selected and
+unselected connections without changing the exact-raster identity. Follow the
+[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
+naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+
+### 5.1 Canvas 2D renderer
+
+The optional Canvas renderer is separate from both the core and playground
+application. Import it when a browser application needs the bundled smooth
+presentation:
+
+```js
+import { renderSmooth } from "bitsquiggles/renderer-canvas";
+
+renderSmooth(canvas, visual);
+```
+
 `playground.js` is only the live-demo application: it owns the form, URL state,
-and page updates, then delegates drawing to the Canvas renderer. Follow the
-shared [smooth-rendering constraints](../SPEC.md#11-smooth-renderer).
-`renderSmooth()` paints the smooth presentation; `renderRaster()` paints the
-exact native raster. `PIXEL_WIDTH` and `PIXEL_HEIGHT` are also exported by this
-optional renderer.
+and page updates, then delegates drawing to the Canvas renderer. `PIXEL_WIDTH`
+and `PIXEL_HEIGHT` are also exported by this optional renderer.
 
 ## 6. Test conformance
 

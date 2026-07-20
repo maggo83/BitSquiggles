@@ -42,47 +42,55 @@ validation rules are defined in the
 
 ## 4. Render the exact raster
 
-`raster["pixels"]` is a row-major `bytearray`. `0` means background and `1`
-means foreground. Render every element as one whole pixel or an integer-scaled
-square:
+The `pixels()` result is the normative $16\times22$ binary raster. Render its
+row-major `pixels` values as whole target pixels or integer-scaled squares;
+`0` is background and `1` is foreground. See the complete
+[exact-raster rules](../SPEC.md#10-exact-binary-renderer).
+
+### 4.1 LVGL renderer
+
+The optional `bitsquiggles_renderer_lvgl.py` module renders the exact raster as
+a cached RGB565 image with integer scaling:
 
 ```python
-for y in range(raster["height"]):
-    for x in range(raster["width"]):
-        on = raster["pixels"][y * raster["width"] + x] != 0
-        # Draw one foreground or background cell at x, y.
+import bitsquiggle32
+import bitsquiggles_renderer_lvgl as lvgl_renderer
+
+raster = bitsquiggle32.pixels(0x12345678, bitsquiggle32.HIGH_CONTRAST)
+lvgl_renderer.render_raster(parent, raster, scale=2)
 ```
 
-The exact dimensions and rendering rules are defined in the
-[normative raster specification](../SPEC.md#10-exact-binary-renderer).
+Call `clear_cache()` after deleting renderer parents.
 
 ## 5. Optional smooth rendering
 
+Smooth rendering is presentation only: it must preserve selected and
+unselected connections without changing the exact-raster identity. Follow the
+[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
+naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+
+### 5.1 LVGL renderer
+
 The optional `bitsquiggles_renderer_lvgl.py` module supports LVGL targets
-without adding an LVGL dependency to the core. It exposes `render_raster()` for
-an exact integer-scaled RGB565 image and `render_smooth()` for a rounded,
-antialiased canvas presentation:
+without adding an LVGL dependency to the core. Its rounded canvas presentation
+uses `render_smooth()`:
 
 ```python
 import bitsquiggle32
 import bitsquiggles_renderer_lvgl as lvgl_renderer
 
 visual = bitsquiggle32.spec(0x12345678, bitsquiggle32.HIGH_CONTRAST)
-raster = bitsquiggle32.pixels(0x12345678, bitsquiggle32.HIGH_CONTRAST)
-lvgl_renderer.render_raster(parent, raster, scale=2)
 lvgl_renderer.render_smooth(parent, visual, scale=4)
 ```
 
-Call `clear_cache()` after deleting renderer parents. The exact renderer is the
-portable baseline; the smooth renderer is target presentation and must preserve
-the selected and unselected connections.
+Call `clear_cache()` after deleting renderer parents.
+
+### 5.2 Other CPython targets
 
 For CPython applications, suitable optional renderer targets include Pillow for
 image output, Tkinter for a standard-library desktop canvas, and pygame for an
 interactive display. None is required or bundled, so the core stays
-MicroPython-compatible. Follow the shared
-[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and renderer
-naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+MicroPython-compatible.
 
 ## 6. Test conformance
 
