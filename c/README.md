@@ -47,6 +47,24 @@ colors, requested style, preferred and actual modes, fallback, luminance index,
 and polarity metadata. Use `bitsquiggle32_mode_label()` to obtain `A|`, `A-`,
 `A+`, or `A/` for a mode enum.
 
+### 3.1 Core API
+
+| Function | Result |
+| --- | --- |
+| `bitsquiggle32_mix32(value)` | Mixed `uint32_t` value. |
+| `bitsquiggle32_edges(output)` | Fills 58 canonical edges in caller-owned storage. |
+| `bitsquiggle32_free_connection_count(mode)` | Independent class count; zero for an invalid mode. |
+| `bitsquiggle32_matches_mode(connections, mode)` | Complete-family membership. |
+| `bitsquiggle32_spec(input, style, output)` | Fills a canonical visual specification. |
+| `bitsquiggle32_pixels(input, style, output)` | Fills the exact raster. |
+| `bitsquiggle32_smooth_blobs(connections, output)` | Returns ordered canonical smooth blobs. |
+
+`bitsquiggle32_smooth_blobs()` consumes a binary 58-entry connection array and
+writes `Bitsquiggle32SmoothBlob` values with inclusive cell coordinates. Its
+caller-owned output array must contain `BITSQUIGGLE32_MAX_SMOOTH_BLOBS` entries
+(82). The return value is the blob count, or `-1` for null pointers or a
+non-binary connection array. No allocation is performed.
+
 ## 4. Render the exact raster
 
 `bitsquiggle32_pixels()` fills a caller-owned `Bitsquiggle32PixelGrid`. It is
@@ -64,10 +82,12 @@ bitsquiggle32_pixels(value, BITSQUIGGLE32_STANDARD, &raster);
 Smooth rendering is presentation only: it must preserve selected and
 unselected connections without changing the exact-raster identity. Follow the
 [smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
-naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
 
 This port bundles no renderer. Add a framework-specific adapter only when the
-target requires one.
+target requires one. Use `bitsquiggle32_smooth_blobs()` as the normal path:
+draw each returned rectangle with the canonical geometry from the
+[smooth-blob specification](../SPEC.md#111-canonical-smooth-blobs).
 
 ## 6. Test conformance
 

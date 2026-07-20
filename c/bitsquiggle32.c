@@ -390,3 +390,243 @@ int bitsquiggle32_pixels(uint32_t input, Bitsquiggle32Style style,
     }
     return 0;
 }
+
+static uint64_t horizontal_edge_bit(unsigned int row, unsigned int column) {
+    unsigned int offset = row == BITSQUIGGLE32_ROWS - 1u
+        ? row * (2u * BITSQUIGGLE32_COLUMNS - 1u) + column
+        : row * (2u * BITSQUIGGLE32_COLUMNS - 1u) + 2u * column;
+    return UINT64_C(1) << offset;
+}
+
+static uint64_t vertical_edge_bit(unsigned int row, unsigned int column) {
+    unsigned int offset = column == BITSQUIGGLE32_COLUMNS - 1u
+        ? 2u * BITSQUIGGLE32_COLUMNS - 2u : 2u * column + 1u;
+    return UINT64_C(1) << (row * (2u * BITSQUIGGLE32_COLUMNS - 1u) + offset);
+}
+
+static uint32_t junction_bit(unsigned int row, unsigned int column) {
+    return UINT32_C(1) << (row * (BITSQUIGGLE32_COLUMNS - 1u) + column);
+}
+
+static bool required_edge_mask(const uint8_t connections[BITSQUIGGLE32_EDGE_COUNT],
+                               uint64_t *output) {
+    unsigned int index;
+    uint64_t result = 0;
+    if (connections == NULL) return false;
+    for (index = 0; index < BITSQUIGGLE32_EDGE_COUNT; ++index) {
+        if (connections[index] != 0u && connections[index] != 1u) return false;
+        if (connections[index] != 0u) result |= UINT64_C(1) << index;
+    }
+    *output = result;
+    return true;
+}
+
+static uint64_t connected_rectangle_edge_mask(unsigned int top, unsigned int left,
+                                              unsigned int bottom, unsigned int right,
+                                              uint64_t required_edges) {
+    unsigned int row;
+    unsigned int column;
+    uint64_t result = 0;
+    for (row = top; row <= bottom; ++row) {
+        for (column = left; column <= right; ++column) {
+            if (column < right) {
+                uint64_t edge = horizontal_edge_bit(row, column);
+                if ((required_edges & edge) == 0) return 0;
+                result |= edge;
+            }
+            if (row < bottom) {
+                uint64_t edge = vertical_edge_bit(row, column);
+                if ((required_edges & edge) == 0) return 0;
+                result |= edge;
+            }
+        }
+    }
+    return result;
+}
+
+static uint32_t required_junction_mask(uint64_t required_edges) {
+    unsigned int row;
+    unsigned int column;
+    uint32_t result = 0;
+    for (row = 0; row + 1u < BITSQUIGGLE32_ROWS; ++row) {
+        for (column = 0; column + 1u < BITSQUIGGLE32_COLUMNS; ++column) {
+            if (connected_rectangle_edge_mask(row, column, row + 1u, column + 1u,
+                                              required_edges) != 0) {
+                result |= junction_bit(row, column);
+            }
+        }
+    }
+    return result;
+}
+
+static uint32_t rectangle_junction_mask(unsigned int top, unsigned int left,
+                                        unsigned int bottom, unsigned int right,
+                                        uint32_t required_junctions) {
+    unsigned int row;
+    unsigned int column;
+    uint32_t result = 0;
+    for (row = top; row < bottom; ++row) {
+        for (column = left; column < right; ++column) {
+            uint32_t junction = junction_bit(row, column);
+            if ((required_junctions & junction) != 0) result |= junction;
+        }
+    }
+    return result;
+}
+
+static unsigned int popcount64(uint64_t value) {
+    unsigned int count = 0;
+    while (value != 0) {
+        value &= value - 1;
+        ++count;
+    }
+    return count;
+}
+
+static bool is_better_blob(unsigned int top, unsigned int left,
+                           unsigned int bottom, unsigned int right,
+                           uint64_t new_edges, uint32_t new_junctions,
+                           unsigned int best_top, unsigned int best_left,
+                           unsigned int best_bottom, unsigned int best_right,
+                           uint64_t best_new_edges, uint32_t best_new_junctions) {
+    unsigned int junction_count = popcount32(new_junctions);
+    unsigned int best_junction_count = popcount32(best_new_junctions);
+    unsigned int edge_count;
+    unsigned int best_edge_count;
+    unsigned int area;
+    unsigned int best_area;
+    if (junction_count != best_junction_count) return junction_count > best_junction_count;
+    edge_count = popcount64(new_edges);
+    best_edge_count = popcount64(best_new_edges);
+    if (edge_count != best_edge_count) return edge_count > best_edge_count;
+    area = (bottom - top + 1u) * (right - left + 1u);
+    best_area = (best_bottom - best_top + 1u) * (best_right - best_left + 1u);
+    if (area != best_area) return area < best_area;
+    if (top != best_top) return top < best_top;
+    if (left != best_left) return left < best_left;
+    if (bottom != best_bottom) return bottom < best_bottom;
+    return right < best_right;
+}
+
+static int first_uncovered_edge(uint64_t required_edges, uint64_t covered_edges) {
+    unsigned int index;
+    uint64_t remaining = required_edges & ~covered_edges;
+    for (index = 0; index < BITSQUIGGLE32_EDGE_COUNT; ++index) {
+        if ((remaining & (UINT64_C(1) << index)) != 0) return (int)index;
+    }
+    return -1;
+}
+
+static int first_uncovered_junction(uint32_t required_junctions,
+                                    uint32_t covered_junctions) {
+    unsigned int index;
+    uint32_t remaining = required_junctions & ~covered_junctions;
+    for (index = 0; index < (BITSQUIGGLE32_ROWS - 1u) * (BITSQUIGGLE32_COLUMNS - 1u); ++index) {
+        if ((remaining & (UINT32_C(1) << index)) != 0) return (int)index;
+    }
+    return -1;
+}
+
+int bitsquiggle32_smooth_blobs(
+    const uint8_t connections[BITSQUIGGLE32_EDGE_COUNT],
+    Bitsquiggle32SmoothBlob output[BITSQUIGGLE32_MAX_SMOOTH_BLOBS]) {
+    Bitsquiggle32Edge edges[BITSQUIGGLE32_EDGE_COUNT];
+    uint64_t required_edges;
+    uint32_t required_junctions;
+    uint64_t covered_edges = 0;
+    uint32_t covered_junctions = 0;
+    unsigned int count = 0;
+    if (output == NULL || !required_edge_mask(connections, &required_edges)) return -1;
+    required_junctions = required_junction_mask(required_edges);
+    bitsquiggle32_edges(edges);
+
+    while (covered_edges != required_edges || covered_junctions != required_junctions) {
+        int anchor_edge = first_uncovered_edge(required_edges, covered_edges);
+        int anchor_junction = anchor_edge < 0
+            ? first_uncovered_junction(required_junctions, covered_junctions) : -1;
+        unsigned int anchor_top;
+        unsigned int anchor_left;
+        unsigned int anchor_bottom;
+        unsigned int anchor_right;
+        unsigned int best_top = 0;
+        unsigned int best_left = 0;
+        unsigned int best_bottom = 0;
+        unsigned int best_right = 0;
+        uint64_t best_edges = 0;
+        uint32_t best_junctions = 0;
+        unsigned int left_inclusive = 0;
+        bool found = false;
+        int top;
+        int left;
+
+        if (anchor_edge >= 0) {
+            Bitsquiggle32Edge edge = edges[anchor_edge];
+            anchor_top = edge.start_row;
+            anchor_left = edge.start_column;
+            anchor_bottom = edge.end_row;
+            anchor_right = edge.end_column;
+        } else {
+            anchor_top = (unsigned int)anchor_junction / (BITSQUIGGLE32_COLUMNS - 1u);
+            anchor_left = (unsigned int)anchor_junction % (BITSQUIGGLE32_COLUMNS - 1u);
+            anchor_bottom = anchor_top + 1u;
+            anchor_right = anchor_left + 1u;
+        }
+
+        for (top = (int)anchor_top; top >= 0; --top) {
+            for (left = (int)anchor_left; left >= (int)left_inclusive; --left) {
+                unsigned int right_exclusive = BITSQUIGGLE32_COLUMNS;
+                bool stop_left_expansion = false;
+                unsigned int bottom;
+                for (bottom = anchor_bottom; bottom < BITSQUIGGLE32_ROWS; ++bottom) {
+                    unsigned int right;
+                    for (right = anchor_right; right < right_exclusive; ++right) {
+                        uint64_t candidate_edges = connected_rectangle_edge_mask(
+                            (unsigned int)top, (unsigned int)left, bottom, right, required_edges);
+                        uint32_t candidate_junctions;
+                        uint64_t new_edges;
+                        uint32_t new_junctions;
+                        if (candidate_edges == 0) {
+                            if (bottom == anchor_bottom && right == anchor_right) {
+                                left_inclusive = (unsigned int)left + 1u;
+                                stop_left_expansion = true;
+                            } else {
+                                right_exclusive = right;
+                            }
+                            break;
+                        }
+                        candidate_junctions = rectangle_junction_mask(
+                            (unsigned int)top, (unsigned int)left, bottom, right,
+                            required_junctions);
+                        new_edges = candidate_edges & ~covered_edges;
+                        new_junctions = candidate_junctions & ~covered_junctions;
+                        if (new_edges == 0 && new_junctions == 0) continue;
+                        if (!found || is_better_blob(
+                                (unsigned int)top, (unsigned int)left, bottom, right,
+                                new_edges, new_junctions, best_top, best_left,
+                                best_bottom, best_right, best_edges & ~covered_edges,
+                                best_junctions & ~covered_junctions)) {
+                            best_top = (unsigned int)top;
+                            best_left = (unsigned int)left;
+                            best_bottom = bottom;
+                            best_right = right;
+                            best_edges = candidate_edges;
+                            best_junctions = candidate_junctions;
+                            found = true;
+                        }
+                    }
+                    if (stop_left_expansion || right_exclusive == anchor_right) break;
+                }
+                if (stop_left_expansion) break;
+            }
+        }
+        if (!found || count == BITSQUIGGLE32_MAX_SMOOTH_BLOBS) return -1;
+        output[count].top_row = (uint8_t)best_top;
+        output[count].left_column = (uint8_t)best_left;
+        output[count].bottom_row = (uint8_t)best_bottom;
+        output[count].right_column = (uint8_t)best_right;
+        ++count;
+        covered_edges |= best_edges;
+        covered_junctions |= best_junctions;
+    }
+    return (int)count;
+}

@@ -13,6 +13,7 @@
 #define BITSQUIGGLE32_EDGE_COUNT 58u
 #define BITSQUIGGLE32_PIXEL_WIDTH 16u
 #define BITSQUIGGLE32_PIXEL_HEIGHT 22u
+#define BITSQUIGGLE32_MAX_SMOOTH_BLOBS 82u
 
 typedef enum {
     BITSQUIGGLE32_STANDARD,
@@ -65,11 +66,23 @@ typedef struct {
     Bitsquiggle32Style style;
 } Bitsquiggle32PixelGrid;
 
+typedef struct {
+    uint8_t top_row;
+    uint8_t left_column;
+    uint8_t bottom_row;
+    uint8_t right_column;
+} Bitsquiggle32SmoothBlob;
+
 /* Return zero on success and -1 for an invalid style or null output pointer. */
 int bitsquiggle32_spec(uint32_t input, Bitsquiggle32Style style,
                        Bitsquiggle32Spec *output);
 int bitsquiggle32_pixels(uint32_t input, Bitsquiggle32Style style,
                          Bitsquiggle32PixelGrid *output);
+
+/* Return the number of ordered smooth blobs, or -1 for invalid input/output.
+ * The caller supplies storage for BITSQUIGGLE32_MAX_SMOOTH_BLOBS entries. */
+int bitsquiggle32_smooth_blobs(const uint8_t connections[BITSQUIGGLE32_EDGE_COUNT],
+                               Bitsquiggle32SmoothBlob output[BITSQUIGGLE32_MAX_SMOOTH_BLOBS]);
 
 uint32_t bitsquiggle32_mix32(uint32_t value);
 unsigned int bitsquiggle32_free_connection_count(Bitsquiggle32Mode mode);

@@ -106,6 +106,81 @@ static void test_style_and_raster_properties(void) {
     }
 }
 
+static void set_connection(uint8_t connections[BITSQUIGGLE32_EDGE_COUNT],
+                           uint8_t start_row, uint8_t start_column,
+                           uint8_t end_row, uint8_t end_column) {
+    Bitsquiggle32Edge edges[BITSQUIGGLE32_EDGE_COUNT];
+    unsigned int index;
+    bitsquiggle32_edges(edges);
+    for (index = 0; index < BITSQUIGGLE32_EDGE_COUNT; ++index) {
+        if (edges[index].start_row == start_row && edges[index].start_column == start_column
+            && edges[index].end_row == end_row && edges[index].end_column == end_column) {
+            connections[index] = 1;
+            return;
+        }
+    }
+    check(false, "known canonical edge");
+}
+
+static void check_blob(const Bitsquiggle32SmoothBlob *blob,
+                       uint8_t top, uint8_t left, uint8_t bottom, uint8_t right,
+                       const char *message) {
+    check(blob->top_row == top && blob->left_column == left
+          && blob->bottom_row == bottom && blob->right_column == right, message);
+}
+
+static void test_smooth_blobs(void) {
+    uint8_t connections[BITSQUIGGLE32_EDGE_COUNT];
+    Bitsquiggle32SmoothBlob blobs[BITSQUIGGLE32_MAX_SMOOTH_BLOBS];
+    unsigned int value;
+    int count;
+    memset(connections, 0, sizeof(connections));
+    check(bitsquiggle32_smooth_blobs(connections, blobs) == 0, "empty mask has no blobs");
+
+    set_connection(connections, 0, 0, 0, 1);
+    count = bitsquiggle32_smooth_blobs(connections, blobs);
+    check(count == 1, "one edge has one blob");
+    check_blob(&blobs[0], 0, 0, 0, 1, "one edge blob geometry");
+
+    memset(connections, 0, sizeof(connections));
+    set_connection(connections, 0, 0, 0, 1);
+    set_connection(connections, 0, 1, 0, 2);
+    count = bitsquiggle32_smooth_blobs(connections, blobs);
+    check(count == 1, "connected row has one blob");
+    check_blob(&blobs[0], 0, 0, 0, 2, "connected row blob geometry");
+
+    memset(connections, 0, sizeof(connections));
+    set_connection(connections, 0, 0, 0, 1);
+    set_connection(connections, 1, 0, 1, 1);
+    set_connection(connections, 0, 0, 1, 0);
+    set_connection(connections, 0, 1, 1, 1);
+    count = bitsquiggle32_smooth_blobs(connections, blobs);
+    check(count == 1, "junction has one blob");
+    check_blob(&blobs[0], 0, 0, 1, 1, "junction blob geometry");
+
+    memset(connections, 1, sizeof(connections));
+    count = bitsquiggle32_smooth_blobs(connections, blobs);
+    check(count == 1, "complete grid has one blob");
+    check_blob(&blobs[0], 0, 0, 6, 4, "complete grid blob geometry");
+
+    for (value = 0; value < 2000; ++value) {
+        Bitsquiggle32Spec visual;
+        check(bitsquiggle32_spec(value, BITSQUIGGLE32_STANDARD, &visual) == 0,
+              "generated blob spec");
+        count = bitsquiggle32_smooth_blobs(visual.connections, blobs);
+        check(count >= 0 && count <= (int)BITSQUIGGLE32_MAX_SMOOTH_BLOBS,
+              "generated blob count is bounded");
+    }
+
+    connections[0] = 2;
+    check(bitsquiggle32_smooth_blobs(connections, blobs) == -1,
+          "reject non-binary blob mask");
+    check(bitsquiggle32_smooth_blobs(NULL, blobs) == -1,
+          "reject null blob mask");
+    check(bitsquiggle32_smooth_blobs(connections, NULL) == -1,
+          "reject null blob output");
+}
+
 static char *read_file(const char *path, size_t *length) {
     FILE *file = fopen(path, "rb");
     char *content;
@@ -229,6 +304,7 @@ int main(int argc, char **argv) {
     test_edges_and_capacities();
     test_golden_vector();
     test_style_and_raster_properties();
+    test_smooth_blobs();
     test_shared_fixture(fixture);
     printf("BitSquiggles C99 tests passed (%lu checks)\n", checks);
     return 0;
