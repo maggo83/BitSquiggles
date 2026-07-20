@@ -37,6 +37,14 @@ assert.equal(mix32(0x89abcdef), 0x47ac5876, "public mixed value");
 assert.deepEqual(MODES.map(freeConnectionCount), [32, 31, 29, 33], "public free class counts");
 assert.equal(matchesMode(spec(0x89abcdef).connections, "A-"), true, "public mode membership");
 
+for (let input = 0; input < 10_000; input += 1) {
+  const visual = spec(input, "black-and-white");
+  assert.match(visual.background, /^#(?:000000|ffffff)$/, "binary black-and-white background");
+  assert.match(visual.foreground, /^#(?:000000|ffffff)$/, "binary black-and-white foreground");
+  assert.notEqual(visual.background, visual.foreground, "opposed black-and-white colors");
+  assert.equal(visual.foreground === "#000000", visual.swapped, "parity controls foreground polarity");
+}
+
 function connections(...endpoints) {
   const result = new Uint8Array(EDGE_COUNT);
   for (let offset = 0; offset < endpoints.length; offset += 4) {

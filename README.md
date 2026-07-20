@@ -17,21 +17,22 @@ deliberately stays at the project and design-rationale level.
 ## Rendered examples
 
 Each sheet below is generated directly from the Java reference implementation.
-The three columns are Standard, High Contrast, and Monochrome. Every column
-contains an 80×110 smooth rendering above its native, unscaled 16×22 pixel
-raster. The color changes between styles; the encoded geometry does not.
+The four columns are Standard, High Contrast, Monochrome, and Black and White.
+Every column contains an 80×110 smooth rendering above its native, unscaled
+16×22 pixel raster. The color changes between styles; the encoded geometry does
+not.
 
 **Try any value in the [interactive playground](https://maggo83.github.io/BitSquiggles/).**
 It runs entirely in the browser and creates a shareable link for each value.
 
 | Input | Representative behavior | Rendered styles and native rasters |
 | --- | --- | --- |
-| `00000000` | Accepted half-turn (`A+`) | ![Input 00000000 in Standard, High Contrast, and Monochrome](docs/examples/00000000.svg) |
-| `00000001` | Half-turn capacity fallback to `A\|` | ![Input 00000001 in Standard, High Contrast, and Monochrome](docs/examples/00000001.svg) |
-| `00000003` | Accepted slash copy (`A/`) | ![Input 00000003 in Standard, High Contrast, and Monochrome](docs/examples/00000003.svg) |
-| `00000004` | Accepted top/bottom copy (`A-`) | ![Input 00000004 in Standard, High Contrast, and Monochrome](docs/examples/00000004.svg) |
-| `12345678` | Sparse left/right output (`A\|`) | ![Input 12345678 in Standard, High Contrast, and Monochrome](docs/examples/12345678.svg) |
-| `ffffffff` | Denser left/right output (`A\|`) | ![Input ffffffff in Standard, High Contrast, and Monochrome](docs/examples/ffffffff.svg) |
+| `00000000` | Accepted half-turn (`A+`) | ![Input 00000000 in Standard, High Contrast, Monochrome, and Black and White](docs/examples/00000000.svg) |
+| `00000001` | Half-turn capacity fallback to `A\|` | ![Input 00000001 in Standard, High Contrast, Monochrome, and Black and White](docs/examples/00000001.svg) |
+| `00000003` | Accepted slash copy (`A/`) | ![Input 00000003 in Standard, High Contrast, Monochrome, and Black and White](docs/examples/00000003.svg) |
+| `00000004` | Accepted top/bottom copy (`A-`) | ![Input 00000004 in Standard, High Contrast, Monochrome, and Black and White](docs/examples/00000004.svg) |
+| `12345678` | Sparse left/right output (`A\|`) | ![Input 12345678 in Standard, High Contrast, Monochrome, and Black and White](docs/examples/12345678.svg) |
+| `ffffffff` | Denser left/right output (`A\|`) | ![Input ffffffff in Standard, High Contrast, Monochrome, and Black and White](docs/examples/ffffffff.svg) |
 
 ## Quick start
 
@@ -111,10 +112,11 @@ substitute for the normative rules in [SPEC.md](SPEC.md).
 
 ### Geometry carries identity
 
-The pattern must remain unambiguous when rendered without color. Hue, chroma,
-and lightness are therefore redundant comparison cues rather than part of the
-uniqueness argument. This also limits the effect of display clipping,
-desaturation, quantization, or inversion.
+The pattern remains unambiguous as a pure Black and White rendering. Hue,
+chroma, and non-binary lightness are optional, redundant comparison cues rather
+than part of the uniqueness argument. This also limits the effect of display
+clipping, desaturation, quantization, or inversion: when those cues are not
+available, the complete black-and-white image is sufficient.
 
 ### Structure is easier to compare than visual noise
 

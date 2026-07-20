@@ -23,7 +23,7 @@ public final class BitSquiggle32 {
     public static final int PIXEL_WIDTH = 16;
     public static final int PIXEL_HEIGHT = 22;
 
-    public enum Style { STANDARD, HIGH_CONTRAST, MONOCHROME }
+    public enum Style { STANDARD, HIGH_CONTRAST, MONOCHROME, BLACK_AND_WHITE }
 
     public enum Mode {
         LEFT_RIGHT("A|"),
@@ -250,6 +250,12 @@ public final class BitSquiggle32 {
             case MONOCHROME -> {
                 foregroundL = baseL + HC_L_ADD;
                 backgroundL = foregroundL - BG_L_SPREAD - BG_L_EXTRA_HC;
+                foregroundC = 0.0;
+                backgroundC = 0.0;
+            }
+            case BLACK_AND_WHITE -> {
+                foregroundL = 1.0;
+                backgroundL = 0.0;
                 foregroundC = 0.0;
                 backgroundC = 0.0;
             }

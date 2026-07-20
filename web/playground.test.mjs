@@ -71,6 +71,7 @@ const cards = new Map([
   ["#standard-card", new FakeCard()],
   ["#high-contrast-card", new FakeCard()],
   ["#monochrome-card", new FakeCard()],
+  ["#black-and-white-card", new FakeCard()],
 ]);
 const elements = new Map([
   ["#value-form", form],

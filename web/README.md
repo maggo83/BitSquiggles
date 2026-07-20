@@ -45,6 +45,11 @@ optional style. The API return values, styles, constants, and hexadecimal
 handling are documented by this guide; shared semantics are in the
 [core API contract](../SPEC.md#12-core-api-contract).
 
+`STYLES` contains `standard`, `high-contrast`, `monochrome`, and
+`black-and-white`. Black and white produces only `#000000` and `#ffffff` after
+the parity-derived polarity swap. Its complete bordered bitmap is unique by
+itself; color and intermediate luminance are optional comparison aids.
+
 ### 3.1 Core API
 
 The core exports `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`,
@@ -72,7 +77,21 @@ row-major values as whole target pixels or nearest-neighbor integer-scaled
 squares; `0` is background and `1` is foreground. See the complete
 [exact-raster rules](../SPEC.md#10-exact-binary-renderer).
 
-### 4.1 Canvas 2D renderer
+### 4.1 Black-and-white display style
+
+`black-and-white` is the shared style for displays with only two physical
+states. It uses fixed base colors: foreground lightness `L = 1`, background
+lightness `L = 0`, and zero chroma for both. The parity-driven
+foreground/background lightness swap is then applied, so its colors are always
+`#ffffff` and `#000000`. The raster geometry is unchanged, so existing exact
+and smooth renderers can consume it without modification.
+
+Use the complete bordered tile: the background border makes the swapped
+polarity visible. The pure black-and-white bitmap remains unique; color and
+intermediate luminance only provide optional comparison cues. This style is
+defined by the shared specification and included in the cross-port fixture.
+
+### 4.2 Canvas 2D renderer
 
 ```js
 import { renderRaster } from "bitsquiggles/renderer-canvas";

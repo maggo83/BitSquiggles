@@ -79,6 +79,7 @@ static void test_style_and_raster_properties(void) {
     for (value = 0; value < 1000; ++value) {
         Bitsquiggle32Spec standard;
         Bitsquiggle32Spec monochrome;
+        Bitsquiggle32Spec black_and_white;
         Bitsquiggle32PixelGrid grid;
         Bitsquiggle32Edge edges[BITSQUIGGLE32_EDGE_COUNT];
         unsigned int edge;
@@ -86,8 +87,20 @@ static void test_style_and_raster_properties(void) {
         unsigned int y;
         check(bitsquiggle32_spec(value, BITSQUIGGLE32_STANDARD, &standard) == 0, "standard spec");
         check(bitsquiggle32_spec(value, BITSQUIGGLE32_MONOCHROME, &monochrome) == 0, "monochrome spec");
+          check(bitsquiggle32_spec(value, BITSQUIGGLE32_BLACK_AND_WHITE, &black_and_white) == 0,
+              "black-and-white spec");
         check(memcmp(standard.connections, monochrome.connections, BITSQUIGGLE32_EDGE_COUNT) == 0,
               "style-independent geometry");
+          check(memcmp(standard.connections, black_and_white.connections, BITSQUIGGLE32_EDGE_COUNT) == 0,
+              "black-and-white style-independent geometry");
+          check((strcmp(black_and_white.background.hex, "#000000") == 0
+               || strcmp(black_and_white.background.hex, "#ffffff") == 0)
+              && (strcmp(black_and_white.foreground.hex, "#000000") == 0
+                || strcmp(black_and_white.foreground.hex, "#ffffff") == 0)
+              && strcmp(black_and_white.background.hex, black_and_white.foreground.hex) != 0,
+              "black-and-white uses opposed binary colors");
+          check((strcmp(black_and_white.foreground.hex, "#000000") == 0) == black_and_white.swapped,
+              "black-and-white parity controls foreground polarity");
         check(bitsquiggle32_matches_mode(standard.connections, standard.actual_mode), "actual mode match");
         check(bitsquiggle32_pixels(value, BITSQUIGGLE32_STANDARD, &grid) == 0, "pixels success");
         for (x = 0; x < BITSQUIGGLE32_PIXEL_WIDTH; ++x) {
@@ -292,6 +305,7 @@ static void test_shared_fixture(const char *path) {
         check_fixture_style(vector, end, (uint32_t)value, "standard", BITSQUIGGLE32_STANDARD);
         check_fixture_style(vector, end, (uint32_t)value, "high-contrast", BITSQUIGGLE32_HIGH_CONTRAST);
         check_fixture_style(vector, end, (uint32_t)value, "monochrome", BITSQUIGGLE32_MONOCHROME);
+        check_fixture_style(vector, end, (uint32_t)value, "black-and-white", BITSQUIGGLE32_BLACK_AND_WHITE);
         ++count;
         vector = end;
     }

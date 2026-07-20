@@ -47,6 +47,12 @@ colors, requested style, preferred and actual modes, fallback, luminance index,
 and polarity metadata. Use `bitsquiggle32_mode_label()` to obtain `A|`, `A-`,
 `A+`, or `A/` for a mode enum.
 
+Styles are `BITSQUIGGLE32_STANDARD`, `BITSQUIGGLE32_HIGH_CONTRAST`,
+`BITSQUIGGLE32_MONOCHROME`, and `BITSQUIGGLE32_BLACK_AND_WHITE`. The
+black-and-white style emits only `#000000` and `#ffffff` after the
+parity-derived polarity swap. Its complete bordered bitmap is unique by itself;
+color and intermediate luminance are optional comparison aids.
+
 ### 3.1 Core API
 
 | Function | Result |
@@ -76,6 +82,20 @@ foreground. See the complete [exact-raster rules](../SPEC.md#10-exact-binary-ren
 Bitsquiggle32PixelGrid raster;
 bitsquiggle32_pixels(value, BITSQUIGGLE32_STANDARD, &raster);
 ```
+
+### 4.1 Black-and-white display style
+
+`BITSQUIGGLE32_BLACK_AND_WHITE` is the shared style for displays with only two
+physical states. It uses fixed base colors: foreground lightness `L = 1`,
+background lightness `L = 0`, and zero chroma for both. The parity-driven
+foreground/background lightness swap is then applied, so its colors are always
+`#ffffff` and `#000000`. The raster geometry is unchanged, so existing exact
+and smooth renderers can consume it without modification.
+
+Use the complete bordered tile: the background border makes the swapped
+polarity visible. The pure black-and-white bitmap remains unique; color and
+intermediate luminance only provide optional comparison cues. This style is
+defined by the shared specification and included in the cross-port fixture.
 
 ## 5. Optional smooth rendering
 

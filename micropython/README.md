@@ -44,7 +44,7 @@ validation rules are documented by this guide; shared semantics are in the
 
 The module exports the constants `ROWS`, `COLUMNS`, `EDGE_COUNT`,
 `PIXEL_WIDTH`, `PIXEL_HEIGHT`, `EDGES`, `STYLES`, and `MODES`; styles
-`STANDARD`, `HIGH_CONTRAST`, `MONOCHROME`; and mode labels `LEFT_RIGHT`,
+`STANDARD`, `HIGH_CONTRAST`, `MONOCHROME`, `BLACK_AND_WHITE`; and mode labels `LEFT_RIGHT`,
 `TOP_BOTTOM`, `HALF_TURN`, and `DIAGONAL_SLASH`.
 
 | Function | Python / MicroPython result |
@@ -69,7 +69,21 @@ row-major `pixels` values as whole target pixels or integer-scaled squares;
 `0` is background and `1` is foreground. See the complete
 [exact-raster rules](../SPEC.md#10-exact-binary-renderer).
 
-### 4.1 LVGL renderer
+### 4.1 Black-and-white display style
+
+`BLACK_AND_WHITE` is the shared style for displays with only two physical
+states. It uses fixed base colors: foreground lightness `L = 1`, background
+lightness `L = 0`, and zero chroma for both. The parity-driven
+foreground/background lightness swap is then applied, so its colors are always
+`#ffffff` and `#000000`. The raster geometry is unchanged, so existing exact
+and smooth renderers can consume it without modification.
+
+Use the complete bordered tile: the background border makes the swapped
+polarity visible. The pure black-and-white bitmap remains unique; color and
+intermediate luminance only provide optional comparison cues. This style is
+defined by the shared specification and included in the cross-port fixture.
+
+### 4.2 LVGL renderer
 
 The optional `bitsquiggles_renderer_lvgl.py` module renders the exact raster as
 a cached RGB565 image with integer scaling:

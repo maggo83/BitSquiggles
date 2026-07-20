@@ -22,6 +22,7 @@ public final class BitSquiggle32Test {
         testEveryModeAndCanonicalPriority();
         testInputBitAvalanche();
         testSampledMonochromeInjectivity();
+        testBlackAndWhiteColorsAndInjectivity();
         testPixelRendererIsLossless();
         testColorsAndParity();
         testSlashWrapRegression();
@@ -120,6 +121,31 @@ public final class BitSquiggle32Test {
         }
     }
 
+    private static void testBlackAndWhiteColorsAndInjectivity() {
+        Set<String> bitmaps = new HashSet<>();
+        for (int input = 0; input < 500_000; input++) {
+            BitSquiggle32.VisSpec visual = BitSquiggle32.spec(
+                    input, BitSquiggle32.Style.BLACK_AND_WHITE);
+            BitSquiggle32.PixelGrid grid = BitSquiggle32.pixels(
+                    input, BitSquiggle32.Style.BLACK_AND_WHITE);
+            check(visual.foreground().hex().matches("#(?:000000|ffffff)"),
+                    "black-and-white foreground is binary");
+            check(visual.background().hex().matches("#(?:000000|ffffff)"),
+                    "black-and-white background is binary");
+            check(!visual.foreground().hex().equals(visual.background().hex()),
+                    "black-and-white colors differ");
+            check((visual.foreground().hex().equals("#000000")) == visual.swapped(),
+                    "swap controls black-and-white foreground polarity");
+            StringBuilder bitmap = new StringBuilder(grid.pixels().length);
+            boolean foregroundIsWhite = visual.foreground().hex().equals("#ffffff");
+            boolean backgroundIsWhite = visual.background().hex().equals("#ffffff");
+            for (byte pixel : grid.pixels()) bitmap.append(pixel == 1
+                    ? (foregroundIsWhite ? '1' : '0')
+                    : (backgroundIsWhite ? '1' : '0'));
+            check(bitmaps.add(bitmap.toString()), "unique sampled black-and-white bitmap: " + input);
+        }
+    }
+
     private static void testPixelRendererIsLossless() {
         for (int input = 0; input < 2_000; input++) {
             BitSquiggle32.VisSpec visual = BitSquiggle32.spec(input);
@@ -157,14 +183,21 @@ public final class BitSquiggle32Test {
         BitSquiggle32.VisSpec standard = BitSquiggle32.spec(input, BitSquiggle32.Style.STANDARD);
         BitSquiggle32.VisSpec contrast = BitSquiggle32.spec(input, BitSquiggle32.Style.HIGH_CONTRAST);
         BitSquiggle32.VisSpec mono = BitSquiggle32.spec(input, BitSquiggle32.Style.MONOCHROME);
+        BitSquiggle32.VisSpec blackAndWhite = BitSquiggle32.spec(input, BitSquiggle32.Style.BLACK_AND_WHITE);
         check(Arrays.equals(standard.connections(), contrast.connections()),
                 "style preserves connections");
         check(Arrays.equals(standard.connections(), mono.connections()),
                 "monochrome preserves unique connections");
+        check(Arrays.equals(standard.connections(), blackAndWhite.connections()),
+            "black-and-white preserves unique connections");
         check(contrast.foreground().C() > standard.foreground().C(),
                 "high-contrast chroma");
         close(0.0, mono.foreground().C(), "monochrome foreground chroma");
         close(0.0, mono.background().C(), "monochrome background chroma");
+        check(blackAndWhite.background().hex().matches("#(?:000000|ffffff)"),
+                "black-and-white background is binary");
+        check(blackAndWhite.foreground().hex().matches("#(?:000000|ffffff)"),
+                "black-and-white foreground is binary");
 
         BitSquiggle32.VisSpec even = BitSquiggle32.spec(0);
         BitSquiggle32.VisSpec odd = BitSquiggle32.spec(1);

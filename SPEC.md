@@ -350,6 +350,7 @@ Derive ordered OKLCH components by style:
 | Standard | `baseL` | `foregroundL - 0.50` | `chroma` | `chroma` |
 | High contrast | `baseL + 0.30` | `foregroundL - 0.80` | `chroma + 0.10` | `chroma + 0.10` |
 | Monochrome | `baseL + 0.30` | `foregroundL - 0.80` | `0` | `0` |
+| Black and White | `1` | `0` | `0` | `0` |
 
 Clamp both lightness values to `[0,1]`. Foreground hue is `hue`; background hue
 is `(hue + 180) modulo 360`.
@@ -536,7 +537,8 @@ returns the presentation-only ordered blob decomposition from
 | `matchesMode(connections, mode)` | complete-family membership |
 
 Every core also exposes `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`, and
-`PIXEL_HEIGHT`; the three styles; and mode labels `A|`, `A-`, `A+`, and `A/`.
+`PIXEL_HEIGHT`; the four styles (Standard, High contrast, Monochrome, and
+Black and white); and mode labels `A|`, `A-`, `A+`, and `A/`.
 These helpers support diagnostics and conformance; applications normally use
 the operations in section 12.1.
 

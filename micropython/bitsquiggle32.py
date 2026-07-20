@@ -17,7 +17,8 @@ PIXEL_HEIGHT = 22
 STANDARD = "standard"
 HIGH_CONTRAST = "high-contrast"
 MONOCHROME = "monochrome"
-STYLES = (STANDARD, HIGH_CONTRAST, MONOCHROME)
+BLACK_AND_WHITE = "black-and-white"
+STYLES = (STANDARD, HIGH_CONTRAST, MONOCHROME, BLACK_AND_WHITE)
 
 LEFT_RIGHT = "A|"
 TOP_BOTTOM = "A-"
@@ -32,7 +33,7 @@ MODES = (
 
 __all__ = (
     "ROWS", "COLUMNS", "EDGE_COUNT", "PIXEL_WIDTH", "PIXEL_HEIGHT", "EDGES",
-    "STANDARD", "HIGH_CONTRAST", "MONOCHROME", "STYLES",
+    "STANDARD", "HIGH_CONTRAST", "MONOCHROME", "BLACK_AND_WHITE", "STYLES",
     "LEFT_RIGHT", "TOP_BOTTOM", "HALF_TURN", "DIAGONAL_SLASH", "MODES",
     "mix32", "free_connection_count", "matches_mode", "spec", "pixels",
     "smooth_blobs",
@@ -280,9 +281,14 @@ def _derive_colors(hue_index, chroma_index, luminance_index, swap, style):
         background_l = foreground_l - BG_L_SPREAD - BG_L_EXTRA_HC
         foreground_c = chroma + CHROMA_HC_ADD
         background_c = chroma + CHROMA_HC_ADD
-    else:
+    elif style == MONOCHROME:
         foreground_l = base_l + HC_L_ADD
         background_l = foreground_l - BG_L_SPREAD - BG_L_EXTRA_HC
+        foreground_c = 0.0
+        background_c = 0.0
+    else:
+        foreground_l = 1.0
+        background_l = 0.0
         foreground_c = 0.0
         background_c = 0.0
     foreground_l = _clamp01(foreground_l)

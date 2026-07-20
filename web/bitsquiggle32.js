@@ -7,7 +7,7 @@ export const EDGE_COUNT = 58;
 export const PIXEL_WIDTH = 16;
 export const PIXEL_HEIGHT = 22;
 
-export const STYLES = ["standard", "high-contrast", "monochrome"];
+export const STYLES = ["standard", "high-contrast", "monochrome", "black-and-white"];
 export const MODES = ["A|", "A-", "A+", "A/"];
 
 const TEMPLATES = [
@@ -158,12 +158,14 @@ function colors(mixed, input, style) {
   let backgroundL = foregroundL - 0.5;
   let foregroundC = chroma;
   let backgroundC = chroma;
-  if (style === "high-contrast" || style === "monochrome") {
-    foregroundL = baseL + 0.3;
-    backgroundL = foregroundL - 0.8;
-    foregroundC = style === "monochrome" ? 0 : chroma + 0.1;
+  if (style === "high-contrast" || style === "monochrome" || style === "black-and-white") {
+    foregroundL = style === "black-and-white" ? 1 : baseL + 0.3;
+    backgroundL = style === "black-and-white" ? 0 : foregroundL - 0.8;
+    foregroundC = style === "monochrome" || style === "black-and-white" ? 0 : chroma + 0.1;
     backgroundC = foregroundC;
   }
+  foregroundL = clamp01(foregroundL);
+  backgroundL = clamp01(backgroundL);
   if (popcount(input) % 2 === 1) [foregroundL, backgroundL] = [backgroundL, foregroundL];
   return {
     background: makeColor(backgroundL, backgroundC, (hue + 180) % 360),

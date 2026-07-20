@@ -51,6 +51,11 @@ operation are defined in the [core API contract](../SPEC.md#12-core-api-contract
 Arrays held by the returned records are mutable; treat them as immutable outputs
 or copy them before sharing them.
 
+The available styles are `STANDARD`, `HIGH_CONTRAST`, `MONOCHROME`, and
+`BLACK_AND_WHITE`. The last style produces only `#000000` and `#ffffff` after
+the parity-derived polarity swap. Its complete bordered raster is unique by
+itself; color and intermediate luminance are optional comparison aids.
+
 Java exposes these static operations on `BitSquiggle32`:
 
 | Operation | Result |
@@ -74,7 +79,21 @@ row-major `pixels()` values as whole target pixels or integer-scaled squares;
 `0` is background and `1` is foreground. See the complete
 [exact-raster rules](../SPEC.md#10-exact-binary-renderer).
 
-### 4.1 Swing and Java2D renderer
+### 4.1 Black-and-white display style
+
+`BLACK_AND_WHITE` is the shared style for displays with only two physical
+states. It uses fixed base colors: foreground lightness `L = 1`, background
+lightness `L = 0`, and zero chroma for both. The parity-driven
+foreground/background lightness swap is then applied, so its colors are always
+`#ffffff` and `#000000`. The raster geometry is unchanged, so existing exact
+and smooth renderers can consume it without modification.
+
+Use the complete bordered tile: the background border makes the swapped
+polarity visible. The pure black-and-white bitmap remains unique; color and
+intermediate luminance only provide optional comparison cues. This style is
+defined by the shared specification and included in the cross-port fixture.
+
+### 4.2 Swing and Java2D renderer
 
 ```java
 import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
@@ -82,7 +101,7 @@ import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
 BitSquiggle32RendererSwing.renderRaster(graphics, raster, pixelSize);
 ```
 
-### 4.2 JavaFX renderer
+### 4.3 JavaFX renderer
 
 ```java
 import bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX;

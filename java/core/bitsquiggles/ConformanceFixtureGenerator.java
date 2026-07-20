@@ -44,7 +44,7 @@ public final class ConformanceFixtureGenerator {
                 .append(", \"edges\": ").append(BitSquiggle32.EDGE_COUNT)
                 .append(", \"pixelWidth\": ").append(BitSquiggle32.PIXEL_WIDTH)
                 .append(", \"pixelHeight\": ").append(BitSquiggle32.PIXEL_HEIGHT).append("},\n")
-                .append("  \"styles\": [\"standard\", \"high-contrast\", \"monochrome\"],\n")
+                .append("  \"styles\": [\"standard\", \"high-contrast\", \"monochrome\", \"black-and-white\"],\n")
                 .append("  \"vectors\": [\n");
         boolean first = true;
         for (int input : corpus()) first = appendVector(json, input, first);

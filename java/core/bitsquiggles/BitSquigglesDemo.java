@@ -98,7 +98,8 @@ public class BitSquigglesDemo {
         JPanel stylesRow = hrow(
             variantCard(BitSquiggle32.Style.STANDARD,      200, "Standard"),
             variantCard(BitSquiggle32.Style.HIGH_CONTRAST, 200, "High Contrast"),
-            variantCard(BitSquiggle32.Style.MONOCHROME,    200, "Monochrome"));
+            variantCard(BitSquiggle32.Style.MONOCHROME,    200, "Monochrome"),
+            variantCard(BitSquiggle32.Style.BLACK_AND_WHITE, 290, "Black and white"));
         content.add(stylesRow);
         content.add(vgap(20));
 
@@ -286,16 +287,15 @@ public class BitSquigglesDemo {
         return card;
     }
 
-    private static JPanel hrow(JPanel a, JPanel b, JPanel c) {
+    private static JPanel hrow(JPanel... cards) {
         JPanel row = new JPanel();
         row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
         row.setBackground(APP_BG);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.add(a);
-        row.add(hgap(12));
-        row.add(b);
-        row.add(hgap(12));
-        row.add(c);
+        for (int index = 0; index < cards.length; index++) {
+            if (index != 0) row.add(hgap(12));
+            row.add(cards[index]);
+        }
         Dimension pref = row.getPreferredSize();
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, pref.height));
         return row;
@@ -340,6 +340,7 @@ public class BitSquigglesDemo {
             case STANDARD      -> "Standard";
             case HIGH_CONTRAST -> "High Contrast";
             case MONOCHROME    -> "Monochrome";
+            case BLACK_AND_WHITE -> "Black and white";
         };
     }
 }

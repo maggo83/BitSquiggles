@@ -31,7 +31,7 @@ static const uint8_t TEMPLATES[4][BITSQUIGGLE32_ROWS * BITSQUIGGLE32_COLUMNS] = 
 };
 
 static bool valid_style(Bitsquiggle32Style style) {
-    return style >= BITSQUIGGLE32_STANDARD && style <= BITSQUIGGLE32_MONOCHROME;
+    return style >= BITSQUIGGLE32_STANDARD && style <= BITSQUIGGLE32_BLACK_AND_WHITE;
 }
 
 static bool valid_mode(Bitsquiggle32Mode mode) {
@@ -271,9 +271,11 @@ static void derive_colors(uint8_t hue_index, uint8_t chroma_index,
         foreground_chroma = chroma;
         background_chroma = chroma;
     } else {
-        foreground_lightness = base_lightness + 0.30;
-        background_lightness = foreground_lightness - 0.80;
-        foreground_chroma = style == BITSQUIGGLE32_MONOCHROME ? 0.0 : chroma + 0.10;
+        foreground_lightness = (style == BITSQUIGGLE32_BLACK_AND_WHITE) ? 1.0 : base_lightness + 0.30;
+        background_lightness = (style == BITSQUIGGLE32_BLACK_AND_WHITE) ? 0.0 : foreground_lightness - 0.80;
+        foreground_chroma = (style == BITSQUIGGLE32_MONOCHROME
+                              || style == BITSQUIGGLE32_BLACK_AND_WHITE)
+            ? 0.0 : chroma + 0.10;
         background_chroma = foreground_chroma;
     }
     foreground_lightness = clamp01(foreground_lightness);

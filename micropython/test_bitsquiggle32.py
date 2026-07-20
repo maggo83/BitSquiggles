@@ -49,7 +49,7 @@ def test_edges_and_mode_capacities():
 def test_public_surface():
     expected = {
         "ROWS", "COLUMNS", "EDGE_COUNT", "PIXEL_WIDTH", "PIXEL_HEIGHT", "EDGES",
-        "STANDARD", "HIGH_CONTRAST", "MONOCHROME", "STYLES",
+        "STANDARD", "HIGH_CONTRAST", "MONOCHROME", "BLACK_AND_WHITE", "STYLES",
         "LEFT_RIGHT", "TOP_BOTTOM", "HALF_TURN", "DIAGONAL_SLASH", "MODES",
         "mix32", "free_connection_count", "matches_mode", "spec", "pixels",
         "smooth_blobs",
@@ -107,6 +107,34 @@ def test_sampled_monochrome_injectivity():
         mask = bytes(visual["connections"])
         check(mask not in seen, "unique monochrome visual %d" % value)
         seen.add(mask)
+
+
+def _black_and_white_bitmap(value):
+    grid = bitsquiggle32.pixels(value, bitsquiggle32.BLACK_AND_WHITE)
+    foreground = grid["foreground"]["hex"] == "#ffffff"
+    background = grid["background"]["hex"] == "#ffffff"
+    return bytes(foreground if pixel else background for pixel in grid["pixels"])
+
+
+def test_black_and_white_colors_and_polarity():
+    for value in range(100000):
+        visual = bitsquiggle32.spec(value, bitsquiggle32.BLACK_AND_WHITE)
+        grid = bitsquiggle32.pixels(value, bitsquiggle32.BLACK_AND_WHITE)
+        check(visual["foreground"]["hex"] in ("#000000", "#ffffff"),
+              "black-and-white foreground")
+        check(visual["background"]["hex"] in ("#000000", "#ffffff"),
+              "black-and-white background")
+        check(visual["foreground"]["hex"] != visual["background"]["hex"],
+              "black-and-white colors differ")
+        check((visual["foreground"]["hex"] == "#000000") == visual["swapped"],
+              "swap controls black-and-white foreground polarity")
+        check(grid["pixels"][0] == 0, "black-and-white border is background")
+
+    seen = set()
+    for value in range(100000):
+        bitmap = _black_and_white_bitmap(value)
+        check(bitmap not in seen, "unique black-and-white bitmap %d" % value)
+        seen.add(bitmap)
 
 
 def test_pixel_renderer_is_lossless():
@@ -309,6 +337,7 @@ def main():
     test_modes_and_canonical_priority()
     test_input_bit_avalanche()
     test_sampled_monochrome_injectivity()
+    test_black_and_white_colors_and_polarity()
     test_pixel_renderer_is_lossless()
     test_colors_parity_and_golden_vector()
     test_slash_wrap_regression()

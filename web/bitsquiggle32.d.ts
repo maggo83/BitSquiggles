@@ -1,4 +1,4 @@
-export type Style = "standard" | "high-contrast" | "monochrome";
+export type Style = "standard" | "high-contrast" | "monochrome" | "black-and-white";
 export type Mode = "A|" | "A-" | "A+" | "A/";
 
 export interface Edge {
