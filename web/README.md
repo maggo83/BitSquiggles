@@ -42,8 +42,28 @@ console.log(formatHex(visual.mixed), visual.actualMode);
 
 Both `spec()` and `pixels()` accept the same signed 32-bit bit pattern and
 optional style. The API return values, styles, constants, and hexadecimal
-handling are defined in the
-[JavaScript API mapping](../SPEC.md#123-javascript-and-typescript).
+handling are documented by this guide; shared semantics are in the
+[core API contract](../SPEC.md#12-core-api-contract).
+
+### 3.1 Core API
+
+The core exports `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`,
+`PIXEL_HEIGHT`, `EDGES`, `STYLES`, and `MODES`.
+
+| Function | JavaScript result |
+| --- | --- |
+| `mix32(input)` | Mixed signed 32-bit bit pattern. |
+| `freeConnectionCount(mode)` | Independent class count for a mode label. |
+| `matchesMode(connections, mode)` | Whether a connection mask belongs to a mode family. |
+| `spec(input[, style])` | Canonical visual object. |
+| `pixels(input[, style])` | Exact raster object. |
+| `smoothBlobs(connections)` | Ordered `{ topRow, leftColumn, bottomRow, rightColumn }` objects. |
+
+Inputs use JavaScript signed 32-bit bit patterns; use `parseHex()` and
+`formatHex()` at unsigned hexadecimal boundaries. `smoothBlobs()` accepts a
+binary, 58-entry `Uint8Array` and throws `RangeError` for invalid masks. Blob
+coordinates are inclusive cell coordinates, and output contains at most 82
+objects. TypeScript declarations include `SmoothBlob`.
 
 ## 4. Render the exact raster
 
@@ -65,7 +85,7 @@ renderRaster(rasterCanvas, raster);
 Smooth rendering is presentation only: it must preserve selected and
 unselected connections without changing the exact-raster identity. Follow the
 [smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
-naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
 
 ### 5.1 Canvas 2D renderer
 
@@ -78,6 +98,9 @@ import { renderSmooth } from "bitsquiggles/renderer-canvas";
 
 renderSmooth(canvas, visual);
 ```
+
+The bundled renderer calls `smoothBlobs(visual.connections)` and paints each
+canonical rounded rectangle using the geometry in the shared specification.
 
 `playground.js` is only the live-demo application: it owns the form, URL state,
 and page updates, then delegates drawing to the Canvas renderer. `PIXEL_WIDTH`

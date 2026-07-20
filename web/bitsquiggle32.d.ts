@@ -32,6 +32,13 @@ export interface PixelGrid {
   style: Style;
 }
 
+export interface SmoothBlob {
+  topRow: number;
+  leftColumn: number;
+  bottomRow: number;
+  rightColumn: number;
+}
+
 export const ROWS: number;
 export const COLUMNS: number;
 export const EDGE_COUNT: number;
@@ -41,11 +48,23 @@ export const STYLES: readonly Style[];
 export const MODES: readonly Mode[];
 export const EDGES: readonly Edge[];
 
+/** Return the bijective mixed signed 32-bit bit pattern. */
+export function mix32(input: number): number;
+
+/** Return the independent connection-class count for a mode. */
+export function freeConnectionCount(mode: Mode): number;
+
+/** Return whether a connection mask belongs to the complete mode family. */
+export function matchesMode(connections: Uint8Array, mode: Mode): boolean;
+
 /** Return the canonical visual specification for a signed 32-bit bit pattern. */
 export function spec(input: number, style?: Style): VisSpec;
 
 /** Return the exact 16×22 binary raster and colors for a signed 32-bit bit pattern. */
 export function pixels(input: number, style?: Style): PixelGrid;
+
+/** Return canonical smooth-rendering blobs for a binary 58-edge connection mask. */
+export function smoothBlobs(connections: Uint8Array): SmoothBlob[];
 
 /** Parse one to eight hexadecimal digits as a signed 32-bit bit pattern. */
 export function parseHex(value: string): number;

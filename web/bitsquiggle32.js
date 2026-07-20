@@ -52,7 +52,7 @@ function createModeDefinition(template) {
   return [...classes.entries()].sort(([first], [second]) => first - second).map(([, occurrences]) => occurrences);
 }
 
-function mix32(value) {
+export function mix32(value) {
   let mixed = (value + 0x9e3779b9) | 0;
   mixed ^= mixed >>> 16;
   mixed = Math.imul(mixed, 0x85ebca6b);
@@ -90,14 +90,26 @@ function hasCapacity(mixed, modeIndex) {
   return missingBits <= 0 || (mixed & ((1 << missingBits) - 1)) === 0;
 }
 
-function matchesMode(connections, modeIndex) {
+function matchesModeIndex(connections, modeIndex) {
   return MODE_DEFINITIONS[modeIndex].every((occurrences) => occurrences.every(
     (edgeIndex) => connections[edgeIndex] === connections[occurrences[0]]
   ));
 }
 
+export function freeConnectionCount(mode) {
+  const modeIndex = MODES.indexOf(mode);
+  if (modeIndex < 0) throw new RangeError(`unknown mode: ${mode}`);
+  return MODE_DEFINITIONS[modeIndex].length;
+}
+
+export function matchesMode(connections, mode) {
+  const modeIndex = MODES.indexOf(mode);
+  if (modeIndex < 0) throw new RangeError(`unknown mode: ${mode}`);
+  return matchesModeIndex(connections, modeIndex);
+}
+
 function conflictsWithEarlierMode(connections, modeIndex) {
-  for (let index = 0; index < modeIndex; index += 1) if (matchesMode(connections, index)) return true;
+  for (let index = 0; index < modeIndex; index += 1) if (matchesModeIndex(connections, index)) return true;
   return false;
 }
 
@@ -240,6 +252,179 @@ export function pixels(input, style = "standard") {
     foreground: visual.foreground,
     style
   };
+}
+
+function horizontalEdgeBit(row, column) {
+  const offset = row === ROWS - 1 ? row * (2 * COLUMNS - 1) + column : row * (2 * COLUMNS - 1) + 2 * column;
+  return 1n << BigInt(offset);
+}
+
+function verticalEdgeBit(row, column) {
+  const offset = column === COLUMNS - 1 ? 2 * COLUMNS - 2 : 2 * column + 1;
+  return 1n << BigInt(row * (2 * COLUMNS - 1) + offset);
+}
+
+function junctionBit(row, column) {
+  return 1n << BigInt(row * (COLUMNS - 1) + column);
+}
+
+function requiredEdgeMask(connections) {
+  if (connections == null || connections.length !== EDGE_COUNT) throw new RangeError("connections must contain 58 entries");
+  let result = 0n;
+  for (let index = 0; index < EDGE_COUNT; index += 1) {
+    if (connections[index] !== 0 && connections[index] !== 1) throw new RangeError("connections must contain only zeroes and ones");
+    if (connections[index]) result |= 1n << BigInt(index);
+  }
+  return result;
+}
+
+function connectedRectangleEdgeMask(top, left, bottom, right, requiredEdges) {
+  let result = 0n;
+  for (let row = top; row <= bottom; row += 1) {
+    for (let column = left; column <= right; column += 1) {
+      if (column < right) {
+        const edge = horizontalEdgeBit(row, column);
+        if ((requiredEdges & edge) === 0n) return 0n;
+        result |= edge;
+      }
+      if (row < bottom) {
+        const edge = verticalEdgeBit(row, column);
+        if ((requiredEdges & edge) === 0n) return 0n;
+        result |= edge;
+      }
+    }
+  }
+  return result;
+}
+
+function requiredJunctionMask(requiredEdges) {
+  let result = 0n;
+  for (let row = 0; row < ROWS - 1; row += 1) {
+    for (let column = 0; column < COLUMNS - 1; column += 1) {
+      if (connectedRectangleEdgeMask(row, column, row + 1, column + 1, requiredEdges) !== 0n) {
+        result |= junctionBit(row, column);
+      }
+    }
+  }
+  return result;
+}
+
+function rectangleJunctionMask(top, left, bottom, right, requiredJunctions) {
+  let result = 0n;
+  for (let row = top; row < bottom; row += 1) {
+    for (let column = left; column < right; column += 1) {
+      const junction = junctionBit(row, column);
+      if ((requiredJunctions & junction) !== 0n) result |= junction;
+    }
+  }
+  return result;
+}
+
+function popcountBigInt(value) {
+  let count = 0;
+  while (value) {
+    value &= value - 1n;
+    count += 1;
+  }
+  return count;
+}
+
+function isBetterBlob(candidate, best, newEdges, newJunctions, bestNewEdges, bestNewJunctions) {
+  const junctionCount = popcountBigInt(newJunctions);
+  const bestJunctionCount = popcountBigInt(bestNewJunctions);
+  if (junctionCount !== bestJunctionCount) return junctionCount > bestJunctionCount;
+  const edgeCount = popcountBigInt(newEdges);
+  const bestEdgeCount = popcountBigInt(bestNewEdges);
+  if (edgeCount !== bestEdgeCount) return edgeCount > bestEdgeCount;
+  const area = (candidate.bottomRow - candidate.topRow + 1) * (candidate.rightColumn - candidate.leftColumn + 1);
+  const bestArea = (best.bottomRow - best.topRow + 1) * (best.rightColumn - best.leftColumn + 1);
+  if (area !== bestArea) return area < bestArea;
+  if (candidate.topRow !== best.topRow) return candidate.topRow < best.topRow;
+  if (candidate.leftColumn !== best.leftColumn) return candidate.leftColumn < best.leftColumn;
+  if (candidate.bottomRow !== best.bottomRow) return candidate.bottomRow < best.bottomRow;
+  return candidate.rightColumn < best.rightColumn;
+}
+
+function firstUncoveredEdge(requiredEdges, coveredEdges) {
+  const remaining = requiredEdges & ~coveredEdges;
+  for (let index = 0; index < EDGE_COUNT; index += 1) if ((remaining & (1n << BigInt(index))) !== 0n) return index;
+  return -1;
+}
+
+function firstUncoveredJunction(requiredJunctions, coveredJunctions) {
+  const remaining = requiredJunctions & ~coveredJunctions;
+  for (let index = 0; index < (ROWS - 1) * (COLUMNS - 1); index += 1) if ((remaining & (1n << BigInt(index))) !== 0n) return index;
+  return -1;
+}
+
+/** Return ordered canonical rounded-rectangle blobs for a connection mask. */
+export function smoothBlobs(connections) {
+  const requiredEdges = requiredEdgeMask(connections);
+  const requiredJunctions = requiredJunctionMask(requiredEdges);
+  let coveredEdges = 0n;
+  let coveredJunctions = 0n;
+  const result = [];
+
+  while (coveredEdges !== requiredEdges || coveredJunctions !== requiredJunctions) {
+    const anchorEdge = firstUncoveredEdge(requiredEdges, coveredEdges);
+    const anchorJunction = anchorEdge < 0 ? firstUncoveredJunction(requiredJunctions, coveredJunctions) : -1;
+    let anchorTop;
+    let anchorLeft;
+    let anchorBottom;
+    let anchorRight;
+    if (anchorEdge >= 0) {
+      const edge = EDGES[anchorEdge];
+      ({ startRow: anchorTop, startColumn: anchorLeft, endRow: anchorBottom, endColumn: anchorRight } = edge);
+    } else {
+      anchorTop = Math.floor(anchorJunction / (COLUMNS - 1));
+      anchorLeft = anchorJunction % (COLUMNS - 1);
+      anchorBottom = anchorTop + 1;
+      anchorRight = anchorLeft + 1;
+    }
+
+    let best = null;
+    let bestEdges = 0n;
+    let bestJunctions = 0n;
+    let leftInclusive = 0;
+    for (let top = anchorTop; top >= 0; top -= 1) {
+      for (let left = anchorLeft; left >= leftInclusive; left -= 1) {
+        let rightExclusive = COLUMNS;
+        let stopLeftExpansion = false;
+        for (let bottom = anchorBottom; bottom < ROWS; bottom += 1) {
+          for (let right = anchorRight; right < rightExclusive; right += 1) {
+            const edges = connectedRectangleEdgeMask(top, left, bottom, right, requiredEdges);
+            if (edges === 0n) {
+              if (bottom === anchorBottom && right === anchorRight) {
+                leftInclusive = left + 1;
+                stopLeftExpansion = true;
+              } else {
+                rightExclusive = right;
+              }
+              break;
+            }
+            const junctions = rectangleJunctionMask(top, left, bottom, right, requiredJunctions);
+            const newEdges = edges & ~coveredEdges;
+            const newJunctions = junctions & ~coveredJunctions;
+            if (newEdges === 0n && newJunctions === 0n) continue;
+            const candidate = { topRow: top, leftColumn: left, bottomRow: bottom, rightColumn: right };
+            if (best === null || isBetterBlob(candidate, best, newEdges, newJunctions,
+              bestEdges & ~coveredEdges, bestJunctions & ~coveredJunctions)) {
+              best = candidate;
+              bestEdges = edges;
+              bestJunctions = junctions;
+            }
+          }
+          if (stopLeftExpansion || rightExclusive === anchorRight) break;
+        }
+        if (stopLeftExpansion) break;
+      }
+    }
+    if (best === null) throw new Error("uncoverable smooth feature");
+    result.push(best);
+    coveredEdges |= bestEdges;
+    coveredJunctions |= bestJunctions;
+  }
+  return result;
 }
 
 export function parseHex(value) {

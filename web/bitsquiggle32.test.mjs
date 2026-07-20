@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { EDGE_COUNT, EDGES, formatHex, parseHex, pixels, spec } from "./bitsquiggle32.js";
+import {
+  EDGE_COUNT, EDGES, formatHex, freeConnectionCount, matchesMode, mix32,
+  MODES, parseHex, pixels, smoothBlobs, spec
+} from "./bitsquiggle32.js";
 
 const fixtures = JSON.parse(await readFile(new URL("../fixtures/v1.json", import.meta.url), "utf8"));
 assert.equal(fixtures.schema, "bitsquiggles-conformance", "known fixture schema");
@@ -30,4 +33,41 @@ for (const vector of fixtures.vectors) {
 assert.equal(parseHex("0xFFFFFFFF"), -1, "parse unsigned maximum");
 assert.equal(formatHex(-1), "FFFFFFFF", "format unsigned maximum");
 assert.throws(() => parseHex("not hex"), /hexadecimal/, "reject invalid hexadecimal");
+assert.equal(mix32(0x89abcdef), 0x47ac5876, "public mixed value");
+assert.deepEqual(MODES.map(freeConnectionCount), [32, 31, 29, 33], "public free class counts");
+assert.equal(matchesMode(spec(0x89abcdef).connections, "A-"), true, "public mode membership");
+
+function connections(...endpoints) {
+  const result = new Uint8Array(EDGE_COUNT);
+  for (let offset = 0; offset < endpoints.length; offset += 4) {
+    const target = endpoints.slice(offset, offset + 4);
+    const edgeIndex = EDGES.findIndex((edge) => edge.startRow === target[0]
+      && edge.startColumn === target[1] && edge.endRow === target[2]
+      && edge.endColumn === target[3]);
+    result[edgeIndex] = 1;
+  }
+  return result;
+}
+
+assert.deepEqual(smoothBlobs(new Uint8Array(EDGE_COUNT)), [], "empty mask has no blobs");
+assert.deepEqual(smoothBlobs(connections(0, 0, 0, 1)), [
+  { topRow: 0, leftColumn: 0, bottomRow: 0, rightColumn: 1 }
+], "one edge has one blob");
+assert.deepEqual(smoothBlobs(connections(0, 0, 0, 1, 0, 1, 0, 2)), [
+  { topRow: 0, leftColumn: 0, bottomRow: 0, rightColumn: 2 }
+], "connected row merges into one blob");
+assert.deepEqual(smoothBlobs(connections(
+  0, 0, 0, 1,
+  1, 0, 1, 1,
+  0, 0, 1, 0,
+  0, 1, 1, 1
+)), [{ topRow: 0, leftColumn: 0, bottomRow: 1, rightColumn: 1 }], "junction merges into one blob");
+assert.deepEqual(smoothBlobs(new Uint8Array(EDGE_COUNT).fill(1)), [
+  { topRow: 0, leftColumn: 0, bottomRow: 6, rightColumn: 4 }
+], "complete grid merges into one blob");
+for (let input = 0; input < 2000; input += 1) {
+  assert.ok(smoothBlobs(spec(input).connections).length <= 82, `bounded blob count for ${input}`);
+}
+assert.throws(() => smoothBlobs(new Uint8Array(57)), /58 entries/, "reject short blob mask");
+assert.throws(() => smoothBlobs(new Uint8Array(EDGE_COUNT).fill(2)), /zeroes and ones/, "reject non-binary blob mask");
 console.log(`BitSquiggles browser tests passed (${fixtures.vectors.length} Java parity vectors)`);
