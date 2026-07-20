@@ -37,8 +37,30 @@ print(visual["actual_mode"], raster["foreground"]["hex"])
 
 Both `spec()` and `pixels()` accept the same unsigned input and optional style.
 The dictionary fields, supported styles, constants, helpers, and input
-validation rules are defined in the
-[Python API mapping](../SPEC.md#122-micropython-compatible-python).
+validation rules are documented by this guide; shared semantics are in the
+[core API contract](../SPEC.md#12-core-api-contract).
+
+### 3.1 Core API
+
+The module exports the constants `ROWS`, `COLUMNS`, `EDGE_COUNT`,
+`PIXEL_WIDTH`, `PIXEL_HEIGHT`, `EDGES`, `STYLES`, and `MODES`; styles
+`STANDARD`, `HIGH_CONTRAST`, `MONOCHROME`; and mode labels `LEFT_RIGHT`,
+`TOP_BOTTOM`, `HALF_TURN`, and `DIAGONAL_SLASH`.
+
+| Function | Python / MicroPython result |
+| --- | --- |
+| `mix32(bits)` | Mixed unsigned 32-bit `int`. |
+| `free_connection_count(mode)` | Independent class count for a mode label. |
+| `matches_mode(connections, mode)` | Whether the 58-entry connection sequence belongs to the mode family. |
+| `spec(bits[, style])` | Canonical visual `dict`. |
+| `pixels(bits[, style])` | Exact raster `dict`. |
+| `smooth_blobs(connections)` | Ordered tuple of `(top_row, left_column, bottom_row, right_column)` tuples. |
+
+`bits` must be an `int` in $[0,2^{32}-1]$; unknown styles raise `ValueError`.
+`smooth_blobs()` accepts a 58-entry sequence containing only `0` and `1`, and
+raises `ValueError` otherwise. Its output contains at most 82 blobs and uses
+inclusive cell coordinates. Pass `visual["connections"]` directly when
+rendering `spec()` output.
 
 ## 4. Render the exact raster
 
@@ -67,13 +89,13 @@ Call `clear_cache()` after deleting renderer parents.
 Smooth rendering is presentation only: it must preserve selected and
 unselected connections without changing the exact-raster identity. Follow the
 [smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
-naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
 
 ### 5.1 LVGL renderer
 
 The optional `bitsquiggles_renderer_lvgl.py` module supports LVGL targets
 without adding an LVGL dependency to the core. Its rounded canvas presentation
-uses `render_smooth()`:
+uses the core's canonical `smooth_blobs()` via `render_smooth()`:
 
 ```python
 import bitsquiggle32

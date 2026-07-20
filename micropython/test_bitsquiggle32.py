@@ -52,6 +52,7 @@ def test_public_surface():
         "STANDARD", "HIGH_CONTRAST", "MONOCHROME", "STYLES",
         "LEFT_RIGHT", "TOP_BOTTOM", "HALF_TURN", "DIAGONAL_SLASH", "MODES",
         "mix32", "free_connection_count", "matches_mode", "spec", "pixels",
+        "smooth_blobs",
     }
     check(set(bitsquiggle32.__all__) == expected, "declared public surface")
 
@@ -167,6 +168,96 @@ def test_slash_wrap_regression():
           "slash copy preserves adjacent diagonal edge relation")
 
 
+def _connections(*endpoints):
+    result = bytearray(bitsquiggle32.EDGE_COUNT)
+    for offset in range(0, len(endpoints), 4):
+        target = tuple(endpoints[offset:offset + 4])
+        for index, edge in enumerate(bitsquiggle32.EDGES):
+            if edge == target:
+                result[index] = 1
+                break
+    return result
+
+
+def _assert_blob_coverage(connections, blobs):
+    active_cells = bitsquiggle32._active_cells(connections)
+    required_junctions = bytearray((bitsquiggle32.ROWS - 1)
+                                   * (bitsquiggle32.COLUMNS - 1))
+    covered_edges = bytearray(bitsquiggle32.EDGE_COUNT)
+    covered_junctions = bytearray(len(required_junctions))
+
+    for row in range(bitsquiggle32.ROWS - 1):
+        for column in range(bitsquiggle32.COLUMNS - 1):
+            if (bitsquiggle32._connection(connections, row, column, row, column + 1)
+                    and bitsquiggle32._connection(
+                        connections, row + 1, column, row + 1, column + 1)
+                    and bitsquiggle32._connection(connections, row, column, row + 1, column)
+                    and bitsquiggle32._connection(
+                        connections, row, column + 1, row + 1, column + 1)):
+                required_junctions[row * (bitsquiggle32.COLUMNS - 1) + column] = 1
+
+    for top, left, bottom, right in blobs:
+        check(top >= 0 and left >= 0 and bottom < bitsquiggle32.ROWS
+              and right < bitsquiggle32.COLUMNS, "blob coordinates are in range")
+        for row in range(top, bottom + 1):
+            for column in range(left, right + 1):
+                check(active_cells[row][column] == 1, "blob contains active cells only")
+        for index, edge in enumerate(bitsquiggle32.EDGES):
+            start_row, start_column, end_row, end_column = edge
+            if (top <= start_row <= bottom and left <= start_column <= right
+                    and top <= end_row <= bottom and left <= end_column <= right):
+                check(connections[index] == 1, "blob internal edge is selected")
+                covered_edges[index] = 1
+        for row in range(top, bottom):
+            for column in range(left, right):
+                covered_junctions[row * (bitsquiggle32.COLUMNS - 1) + column] = 1
+
+    check(covered_edges == connections, "blobs cover every selected edge")
+    for index in range(len(required_junctions)):
+        check(not required_junctions[index] or covered_junctions[index],
+              "blobs cover every required junction")
+
+
+def test_smooth_blobs():
+    empty = bytearray(bitsquiggle32.EDGE_COUNT)
+    check(bitsquiggle32.smooth_blobs(empty) == (), "empty mask has no smooth blobs")
+
+    single_edge = _connections(0, 0, 0, 1)
+    check(bitsquiggle32.smooth_blobs(single_edge) == ((0, 0, 0, 1),),
+          "one edge has one 1x2 blob")
+    _assert_blob_coverage(single_edge, bitsquiggle32.smooth_blobs(single_edge))
+
+    row = _connections(0, 0, 0, 1, 0, 1, 0, 2)
+    check(bitsquiggle32.smooth_blobs(row) == ((0, 0, 0, 2),),
+          "connected row merges into one blob")
+    _assert_blob_coverage(row, bitsquiggle32.smooth_blobs(row))
+
+    square = _connections(
+        0, 0, 0, 1,
+        1, 0, 1, 1,
+        0, 0, 1, 0,
+        0, 1, 1, 1)
+    check(bitsquiggle32.smooth_blobs(square) == ((0, 0, 1, 1),),
+          "four-edge junction merges into one 2x2 blob")
+    _assert_blob_coverage(square, bitsquiggle32.smooth_blobs(square))
+
+    complete = bytearray([1] * bitsquiggle32.EDGE_COUNT)
+    check(bitsquiggle32.smooth_blobs(complete) == ((0, 0, 6, 4),),
+          "complete grid merges into one blob")
+    _assert_blob_coverage(complete, bitsquiggle32.smooth_blobs(complete))
+
+    for value in range(2000):
+        connections = bitsquiggle32.spec(value)["connections"]
+        _assert_blob_coverage(connections, bitsquiggle32.smooth_blobs(connections))
+
+    expect_failure(lambda: bitsquiggle32.smooth_blobs(bytearray(57)),
+                   "reject short smooth edge mask")
+    invalid = bytearray(bitsquiggle32.EDGE_COUNT)
+    invalid[0] = 2
+    expect_failure(lambda: bitsquiggle32.smooth_blobs(invalid),
+                   "reject non-binary smooth edge mask")
+
+
 def test_input_validation():
     expect_failure(lambda: bitsquiggle32.spec(-1), "reject negative")
     expect_failure(lambda: bitsquiggle32.spec(0x100000000), "reject >32 bit")
@@ -221,6 +312,7 @@ def main():
     test_pixel_renderer_is_lossless()
     test_colors_parity_and_golden_vector()
     test_slash_wrap_regression()
+    test_smooth_blobs()
     test_input_validation()
     test_shared_fixture_under_cpython()
     print("BitSquiggles MicroPython tests passed (%d checks)" % _checks)
