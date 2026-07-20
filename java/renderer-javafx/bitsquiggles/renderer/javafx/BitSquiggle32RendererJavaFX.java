@@ -35,62 +35,14 @@ public final class BitSquiggle32RendererJavaFX {
                 2.0 * scale, 2.0 * scale);
 
         graphics.setFill(parseHex(spec.foreground().hex()));
-        double cellSize = 2.0 * scale;
-        double bridgeGap = scale;
-        // Extend each bridge a whole canonical pixel into both endpoint cells.
-        // The redundant foreground coverage prevents Canvas antialiasing from
-        // leaving a background hairline between separately painted primitives.
-        double overlap = scale;
-
-        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
-        for (int index = 0; index < edges.length; index++) {
-            if (spec.connections()[index] == 0) continue;
-            BitSquiggle32.Edge edge = edges[index];
-            double x = offsetX + (1 + edge.startColumn() * 3) * scale;
-            double y = offsetY + (1 + edge.startRow() * 3) * scale;
-            if (edge.startRow() == edge.endRow()) {
-                graphics.fillRect(x + cellSize - overlap, y,
-                        bridgeGap + 2.0 * overlap, cellSize);
-            } else {
-                graphics.fillRect(x, y + cellSize - overlap,
-                        cellSize, bridgeGap + 2.0 * overlap);
-            }
+        for (BitSquiggle32.SmoothBlob blob : BitSquiggle32.extractSmoothBlobs(
+                spec.connections())) {
+            double x = offsetX + (1 + blob.leftColumn() * 3) * scale;
+            double y = offsetY + (1 + blob.topRow() * 3) * scale;
+            double blobWidth = (2 + 3 * (blob.rightColumn() - blob.leftColumn())) * scale;
+            double blobHeight = (2 + 3 * (blob.bottomRow() - blob.topRow())) * scale;
+            graphics.fillRoundRect(x, y, blobWidth, blobHeight, 2.0 * scale, 2.0 * scale);
         }
-
-        for (int row = 0; row < BitSquiggle32.ROWS - 1; row++) {
-            for (int column = 0; column < BitSquiggle32.COLUMNS - 1; column++) {
-                if (edgeValue(spec, row, column, row, column + 1) == 1
-                        && edgeValue(spec, row + 1, column, row + 1, column + 1) == 1
-                        && edgeValue(spec, row, column, row + 1, column) == 1
-                        && edgeValue(spec, row, column + 1, row + 1, column + 1) == 1) {
-                    graphics.fillRect(offsetX + (3 + column * 3) * scale,
-                            offsetY + (3 + row * 3) * scale, scale, scale);
-                }
-            }
-        }
-
-        for (int row = 0; row < BitSquiggle32.ROWS; row++) {
-            for (int column = 0; column < BitSquiggle32.COLUMNS; column++) {
-                if (spec.cells()[row][column] == 0) continue;
-                double x = offsetX + (1 + column * 3) * scale;
-                double y = offsetY + (1 + row * 3) * scale;
-                graphics.fillRoundRect(x, y, cellSize, cellSize, cellSize, cellSize);
-            }
-        }
-    }
-
-    private static int edgeValue(
-            BitSquiggle32.VisSpec spec, int startRow, int startColumn,
-            int endRow, int endColumn) {
-        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
-        for (int index = 0; index < edges.length; index++) {
-            BitSquiggle32.Edge edge = edges[index];
-            if (edge.startRow() == startRow && edge.startColumn() == startColumn
-                    && edge.endRow() == endRow && edge.endColumn() == endColumn) {
-                return spec.connections()[index];
-            }
-        }
-        return 0;
     }
 
     /** Paint an exact pixel grid using whole {@code pixelSize}-square target pixels. */

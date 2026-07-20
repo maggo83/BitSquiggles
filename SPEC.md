@@ -417,8 +417,17 @@ membership alone would not reveal it.
 ### 11. Smooth renderer
 
 Smooth rendering is presentation rather than the binary conformance format,
-but it must preserve selected and unselected connections. Use the same 16×22
-coordinate system at any scale:
+but it must preserve selected and unselected connections. The direct procedure
+below is a simple baseline that always works: it draws every active cell,
+selected bridge, and required junction. It is useful for minimal renderers.
+
+The intended normal path is [canonical smooth blobs](#111-canonical-smooth-blobs):
+core preprocessing produces fewer rounded rectangles with the same smooth
+foreground union, and renderers draw those rectangles. Every core provides the
+blob helper; renderers should use it unless the direct baseline is specifically
+needed.
+
+The direct procedure uses the same 16×22 coordinate system at any scale:
 
 1. draw the complete background tile with rounded outer corners;
 2. represent every active 2×2 cell with corner radii equal to half the cell
@@ -432,25 +441,104 @@ coordinate system at any scale:
 The union avoids hairline background seams between overlapping components.
 Smoothing must not close an unselected connection.
 
-### 12. Reference API mapping
+#### 11.1 Canonical smooth blobs
 
-Every core exposes the following conceptual API:
+Canonical smooth blobs combine fully connected cells into fewer rounded
+rectangles. Their purpose is to reduce foreground polygons submitted by a
+smooth renderer while preserving the selected/unselected connection topology
+and intended smooth union. Canonical output gives every port the same compact
+geometry. Every core exposes this helper. It preserves the identity-bearing
+connection mask, active cells, and exact raster.
+
+Write a blob as $B=[r_0,r_1]×[c_0,c_1]$, with
+$0\,\leq\,r_0\,\leq\,r_1<ROWS$ and
+$0\,\leq\,c_0\,\leq\,c_1<COLUMNS$. It is valid when it has at least one
+internal edge, every cell in $B$ is active, and every internal grid adjacency
+of $B$ is selected.
+
+Let $F=E\cup J$, where $E$ is the selected-edge set and $J$ is the set of
+2×2 cell squares with all four perimeter edges selected (*required junctions*).
+$B$ covers its internal edges and junctions in $J$. Ordered blobs cover $F$;
+they may overlap because coverage is by features, not cells.
+
+For a blob `(r0, c0, r1, c1)`, its unscaled smooth rectangle in the exact
+raster coordinate system is:
+
+```text
+x = 1 + 3 × c0
+y = 1 + 3 × r0
+w = 2 + 3 × (c1 - c0)
+h = 2 + 3 × (r1 - r0)
+```
+
+At scale `s`, multiply `x`, `y`, `w`, and `h` by `s` and use a corner radius
+of `s`, half the physical cell width. Renderers must union blobs geometrically
+or overlap their foreground drawing sufficiently before antialiasing; drawing
+separate edge-to-edge antialiased rectangles can create seams.
+
+#### 11.2 Canonical blob extraction
+
+Extraction favors deterministic, portable geometry with a small bounded working
+set suitable for embedded targets. It greedily enumerates candidates on demand,
+retaining only feature masks, the current best candidate, and the blob output.
+
+1. Derive the required edge set from the selected canonical connections.
+2. Derive required junctions from every 2×2 square in row-major order.
+3. Select the first uncovered feature—edges in canonical order, then junctions
+   in row-major order—and use its endpoint rectangle or 2×2 square as anchor.
+4. Consider each rectangle containing the anchor; reject any rectangle that
+   fails the [section 11.1](#111-canonical-smooth-blobs) blob conditions.
+5. Choose the candidate with this tie-break order:
+
+   1. newly covered required junction count, descending;
+   2. newly covered required edge count, descending;
+   3. cell area, ascending;
+   4. `topRow`, `leftColumn`, `bottomRow`, `rightColumn`, each ascending.
+
+6. Append it, mark its features covered, and repeat.
+
+An uncovered edge has a valid 1×2 or 2×1 candidate; an uncovered junction has
+a valid 2×2 candidate. These cases guarantee progress through the required
+features.
+
+Implementations can short-circuit at a missing internal edge and prune supersets
+retaining that edge when the tie-break winner remains unchanged. The fixed grid
+caps output at 82 blobs: 58 edges plus 24 junctions.
+
+### 12. Core API contract
+
+Every core exposes these public operations using its language's conventional
+naming, arguments, return values, and error reporting.
+
+#### 12.1 Application-facing operations
 
 | Operation | Result |
 | --- | --- |
 | `spec(input[, style])` | canonical visual specification |
 | `pixels(input[, style])` | exact pixel grid and its colors |
+| `smoothBlobs(connections)` | ordered canonical smooth blobs |
 
 `spec()` is pure: it derives the mixed input, connections, active cells, colors,
 style, preferred and actual modes, fallback state, luminance index, and polarity
 metadata. `pixels()` is also pure and derives the exact 16×22 binary raster and
 its colors from the same input and style. Neither operation draws anything.
+`smoothBlobs()` is also pure; it consumes a canonical connection mask and
+returns the presentation-only ordered blob decomposition from
+[section 11.2](#112-canonical-blob-extraction).
 
-Every implementation exposes the common dimensions `ROWS`, `COLUMNS`,
-`EDGE_COUNT`, `PIXEL_WIDTH`, and `PIXEL_HEIGHT`, plus the canonical edge list.
-Every implementation also exposes the styles Standard, High Contrast, and
-Monochrome and the mode labels `A|`, `A-`, `A+`, and `A/`, using its language's
-normal conventions for constants or enums.
+#### 12.2 Public conformance helpers
+
+| Operation | Result |
+| --- | --- |
+| `mix32(input)` | bijective 32-bit mixed value |
+| `edges()` | 58 canonical edges in section 4 order |
+| `freeConnectionCount(mode)` | independent connection-class count |
+| `matchesMode(connections, mode)` | complete-family membership |
+
+Every core also exposes `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`, and
+`PIXEL_HEIGHT`; the three styles; and mode labels `A|`, `A-`, `A+`, and `A/`.
+These helpers support diagnostics and conformance; applications normally use
+the operations in section 12.1.
 
 Optional target renderers append a framework identifier to the
 `BitSquiggle32Renderer` root, using the target language's normal naming style.
@@ -463,84 +551,8 @@ paints each pixel grid element as an exact whole target pixel or integer-scaled
 square. A renderer is optional and does not change core identity or the exact
 raster contract.
 
-The following sections define only language-specific container types and
-additional helpers.
-
-#### 12.1 Java 17
-
-Public static operations on `BitSquiggle32`:
-
-| Operation | Result |
-| --- | --- |
-| `edges()` | canonical `Edge[]` |
-| `freeConnectionCount(Mode)` | free-class count |
-| `spec(int[, Style])` | `VisSpec` |
-| `pixels(int[, Style])` | `PixelGrid` |
-
-`Style` and `Mode` are public enums. Public records are `Edge`, `OklchColor`,
-`VisSpec`, and `PixelGrid`; their components define the returned fields. Java
-represents the unsigned input domain with all `int` bit patterns. Arrays held by
-records remain mutable Java arrays. The implementation also keeps
-`mix32(int)` and `matchesMode(byte[], Mode)` visible to its package for
-conformance tests; they are not public Java API.
-
-#### 12.2 MicroPython-compatible Python
-
-Public module operations:
-
-| Operation | Result |
-| --- | --- |
-| `mix32(value)` | mixed integer |
-| `free_connection_count(mode)` | free-class count |
-| `matches_mode(connections, mode)` | complete-family membership |
-| `spec(bits, style=STANDARD)` | visual dictionary |
-| `pixels(bits, style=STANDARD)` | raster dictionary |
-
-`bits` must be an `int` in the inclusive range `0…0xffffffff`; otherwise
-`spec()` and `pixels()` raise `ValueError`. The style must be `standard`,
-`high-contrast`, or `monochrome`; unknown styles raise `ValueError`.
-
-The visual dictionary exposes `input`, `mixed`, `connections`, `cells`,
-`background`, `foreground`, `style`, `preferred_mode`, `actual_mode`,
-`fallback`, `luminance_index`, and `swapped`. The raster dictionary exposes
-`width`, `height`, `pixels`, `background`, `foreground`, and `style`.
-
-#### 12.3 JavaScript and TypeScript
-
-Public ESM operations:
-
-| Operation | Result |
-| --- | --- |
-| `spec(input[, style])` | `VisSpec` object |
-| `pixels(input[, style])` | `PixelGrid` object |
-| `parseHex(value)` | signed 32-bit bit pattern |
-| `formatHex(value)` | eight-character uppercase hexadecimal string |
-
-JavaScript accepts numbers carrying signed 32-bit bit patterns. Styles are the
-strings `standard`, `high-contrast`, and `monochrome`. `parseHex()` accepts one
-to eight hexadecimal digits after optional surrounding whitespace and an
-optional `0x` prefix, then returns a signed bit pattern; `formatHex()` displays
-one as an unsigned hexadecimal value. `VisSpec` and `PixelGrid` use camel-case
-property names. The published TypeScript declarations are part of the package
-interface.
-
-#### 12.4 C99
-
-Public operations declared by `bitsquiggle32.h`:
-
-| Operation | Result |
-| --- | --- |
-| `bitsquiggle32_mix32(uint32_t)` | mixed unsigned 32-bit value |
-| `bitsquiggle32_free_connection_count(Bitsquiggle32Mode)` | free-class count |
-| `bitsquiggle32_matches_mode(...)` | complete-family membership |
-| `bitsquiggle32_spec(uint32_t, style, output)` | fills `Bitsquiggle32Spec` |
-| `bitsquiggle32_pixels(uint32_t, style, output)` | fills `Bitsquiggle32PixelGrid` |
-
-`Bitsquiggle32Spec` and `Bitsquiggle32PixelGrid` are caller-owned structures.
-The two output operations return zero on success and `-1` for an invalid style
-or null output pointer. C represents the whole input domain with `uint32_t`.
-Styles and modes are enums, and `bitsquiggle32_mode_label()` returns the shared
-mode labels.
+Each port guide owns exact exported names, signatures, container types, input
+validation, ownership, and target-specific helpers.
 
 ### 13. Conformance requirements
 
@@ -558,6 +570,10 @@ A conforming implementation must satisfy all of the following:
 - produce the exact 16×22 raster with a background border;
 - permit recovery of every connection from its bridge pixels;
 - match the conformance vector in section 13.1.
+
+Every implementation must produce the ordered smooth-blob decomposition defined
+in [section 11.2](#112-canonical-blob-extraction) and preserve the exact-raster
+and connection-mask results.
 
 Implementations should additionally test one-bit diffusion, observe every
 preferred mode and fallback in representative samples, compare large sampled

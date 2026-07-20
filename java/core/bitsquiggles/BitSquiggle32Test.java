@@ -27,6 +27,7 @@ public final class BitSquiggle32Test {
         testSlashWrapRegression();
         testGoldenVector();
         testDemoHexParsing();
+        testSmoothBlobReferenceImplementation();
         testSwingRenderer();
         System.out.println("BitSquiggles Java tests passed (" + checks + " checks)");
     }
@@ -200,6 +201,145 @@ public final class BitSquiggle32Test {
         check(BitSquigglesDemo.parseBits("0xFFFFFFFF") == -1, "parse unsigned max with prefix");
         expectFailure(() -> BitSquigglesDemo.parseBits("123"), "reject short input");
         expectFailure(() -> BitSquigglesDemo.parseBits("zzzzzzzz"), "reject non-hex input");
+    }
+
+    private static void testSmoothBlobReferenceImplementation() {
+        check(BitSquiggle32.extractSmoothBlobs(new byte[BitSquiggle32.EDGE_COUNT]).length == 0,
+                "empty edge mask has no smooth blobs");
+
+        byte[] singleEdge = connections(0, 0, 0, 1);
+        BitSquiggle32.SmoothBlob[] singleBlobs = BitSquiggle32.extractSmoothBlobs(singleEdge);
+        check(Arrays.equals(singleBlobs, new BitSquiggle32.SmoothBlob[]{
+            new BitSquiggle32.SmoothBlob(0, 0, 0, 1)}),
+                "one edge has one 1x2 blob");
+        assertBlobCoverage(singleEdge, singleBlobs);
+
+        byte[] row = connections(0, 0, 0, 1, 0, 1, 0, 2);
+        BitSquiggle32.SmoothBlob[] rowBlobs = BitSquiggle32.extractSmoothBlobs(row);
+        check(Arrays.equals(rowBlobs, new BitSquiggle32.SmoothBlob[]{
+            new BitSquiggle32.SmoothBlob(0, 0, 0, 2)}),
+                "connected row merges into one blob");
+        assertBlobCoverage(row, rowBlobs);
+
+        byte[] square = connections(
+                0, 0, 0, 1,
+                1, 0, 1, 1,
+                0, 0, 1, 0,
+                0, 1, 1, 1);
+        BitSquiggle32.SmoothBlob[] squareBlobs = BitSquiggle32.extractSmoothBlobs(square);
+        check(Arrays.equals(squareBlobs, new BitSquiggle32.SmoothBlob[]{
+            new BitSquiggle32.SmoothBlob(0, 0, 1, 1)}),
+                "four-edge junction merges into one 2x2 blob");
+        assertBlobCoverage(square, squareBlobs);
+
+        byte[] complete = new byte[BitSquiggle32.EDGE_COUNT];
+        Arrays.fill(complete, (byte) 1);
+        BitSquiggle32.SmoothBlob[] completeBlobs = BitSquiggle32.extractSmoothBlobs(complete);
+        check(Arrays.equals(completeBlobs, new BitSquiggle32.SmoothBlob[]{
+            new BitSquiggle32.SmoothBlob(0, 0, 6, 4)}),
+                "complete grid merges into one blob");
+        assertBlobCoverage(complete, completeBlobs);
+
+        for (int input = 0; input < 2_000; input++) {
+            byte[] mask = BitSquiggle32.spec(input).connections();
+            BitSquiggle32.SmoothBlob[] blobs = BitSquiggle32.extractSmoothBlobs(mask);
+            assertBlobCoverage(mask, blobs);
+        }
+
+        expectFailure(() -> BitSquiggle32.extractSmoothBlobs(new byte[57]),
+                "reject short smooth edge mask");
+        byte[] invalid = new byte[BitSquiggle32.EDGE_COUNT];
+        invalid[0] = 2;
+        expectFailure(() -> BitSquiggle32.extractSmoothBlobs(invalid),
+                "reject non-binary smooth edge mask");
+    }
+
+    private static byte[] connections(int... endpoints) {
+        byte[] result = new byte[BitSquiggle32.EDGE_COUNT];
+        for (int i = 0; i < endpoints.length; i += 4) {
+            for (int edgeIndex = 0; edgeIndex < BitSquiggle32.EDGE_COUNT; edgeIndex++) {
+                BitSquiggle32.Edge edge = BitSquiggle32.edges()[edgeIndex];
+                if (edge.startRow() == endpoints[i] && edge.startColumn() == endpoints[i + 1]
+                        && edge.endRow() == endpoints[i + 2]
+                        && edge.endColumn() == endpoints[i + 3]) {
+                    result[edgeIndex] = 1;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+        private static void assertBlobCoverage(
+            byte[] connections, BitSquiggle32.SmoothBlob[] blobs) {
+        long selectedEdges = 0;
+        long activeCells = 0;
+        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
+        for (int edgeIndex = 0; edgeIndex < edges.length; edgeIndex++) {
+            if (connections[edgeIndex] == 0) continue;
+            selectedEdges |= 1L << edgeIndex;
+            activeCells |= cellBit(edges[edgeIndex].startRow(), edges[edgeIndex].startColumn());
+            activeCells |= cellBit(edges[edgeIndex].endRow(), edges[edgeIndex].endColumn());
+        }
+
+        long coveredEdges = 0;
+        int requiredJunctions = 0;
+        int coveredJunctions = 0;
+        for (int row = 0; row < BitSquiggle32.ROWS - 1; row++) {
+            for (int column = 0; column < BitSquiggle32.COLUMNS - 1; column++) {
+                if (BitSquiggle32.connection(connections, row, column, row, column + 1) == 1
+                        && BitSquiggle32.connection(
+                                connections, row + 1, column, row + 1, column + 1) == 1
+                        && BitSquiggle32.connection(connections, row, column, row + 1, column) == 1
+                        && BitSquiggle32.connection(
+                                connections, row, column + 1, row + 1, column + 1) == 1) {
+                    requiredJunctions |= 1 << junctionIndex(row, column);
+                }
+            }
+        }
+
+        for (BitSquiggle32.SmoothBlob blob : blobs) {
+            check(blob.topRow() >= 0 && blob.leftColumn() >= 0
+                            && blob.bottomRow() < BitSquiggle32.ROWS
+                            && blob.rightColumn() < BitSquiggle32.COLUMNS,
+                    "blob coordinates are in range");
+            for (int row = blob.topRow(); row <= blob.bottomRow(); row++) {
+                for (int column = blob.leftColumn(); column <= blob.rightColumn(); column++) {
+                    check((activeCells & cellBit(row, column)) != 0,
+                            "blob contains active cells only");
+                }
+            }
+            for (int edgeIndex = 0; edgeIndex < edges.length; edgeIndex++) {
+                BitSquiggle32.Edge edge = edges[edgeIndex];
+                if (inside(blob, edge)) {
+                    check(connections[edgeIndex] == 1, "blob internal edge is selected");
+                    coveredEdges |= 1L << edgeIndex;
+                }
+            }
+            for (int row = blob.topRow(); row < blob.bottomRow(); row++) {
+                for (int column = blob.leftColumn(); column < blob.rightColumn(); column++) {
+                    coveredJunctions |= 1 << junctionIndex(row, column);
+                }
+            }
+        }
+        check(coveredEdges == selectedEdges, "blobs cover every selected edge");
+        check((coveredJunctions & requiredJunctions) == requiredJunctions,
+                "blobs cover every required junction");
+    }
+
+    private static boolean inside(BitSquiggle32.SmoothBlob blob, BitSquiggle32.Edge edge) {
+        return edge.startRow() >= blob.topRow() && edge.startRow() <= blob.bottomRow()
+                && edge.startColumn() >= blob.leftColumn() && edge.startColumn() <= blob.rightColumn()
+                && edge.endRow() >= blob.topRow() && edge.endRow() <= blob.bottomRow()
+                && edge.endColumn() >= blob.leftColumn() && edge.endColumn() <= blob.rightColumn();
+    }
+
+    private static long cellBit(int row, int column) {
+        return 1L << (row * BitSquiggle32.COLUMNS + column);
+    }
+
+    private static int junctionIndex(int row, int column) {
+        return row * (BitSquiggle32.COLUMNS - 1) + column;
     }
 
     private static void testSwingRenderer() {

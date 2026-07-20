@@ -46,10 +46,26 @@ System.out.println(raster.foreground().hex());
 ```
 
 Both methods also accept an optional `BitSquiggle32.Style`; the one-argument
-overloads use `STANDARD`. The shared output contract and every other public
-core symbol are defined in the [Java API mapping](../SPEC.md#121-java-17).
+overloads use `STANDARD`. The shared output contract and every required core
+operation are defined in the [core API contract](../SPEC.md#12-core-api-contract).
 Arrays held by the returned records are mutable; treat them as immutable outputs
 or copy them before sharing them.
+
+Java exposes these static operations on `BitSquiggle32`:
+
+| Operation | Result |
+| --- | --- |
+| `mix32(int)` | mixed `int` bit pattern |
+| `edges()` | `Edge[]` |
+| `freeConnectionCount(Mode)` | free-class count |
+| `matchesMode(byte[], Mode)` | complete-family membership |
+| `spec(int[, Style])` | `VisSpec` |
+| `pixels(int[, Style])` | `PixelGrid` |
+| `extractSmoothBlobs(byte[])` | `SmoothBlob[]` |
+
+`Style` and `Mode` are public enums. Public records are `Edge`, `OklchColor`,
+`VisSpec`, `PixelGrid`, and `SmoothBlob`. Java accepts every `int` bit pattern
+as an unsigned 32-bit input.
 
 ## 4. Render the exact raster
 
@@ -79,7 +95,9 @@ BitSquiggle32RendererJavaFX.renderRaster(graphics, raster, pixelSize);
 Smooth rendering is presentation only: it must preserve selected and
 unselected connections without changing the exact-raster identity. Follow the
 [smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
-naming convention in the [API mapping](../SPEC.md#12-reference-api-mapping).
+naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
+The bundled Swing and JavaFX renderers use `extractSmoothBlobs()` to reduce
+foreground primitives while preserving the canonical smooth union.
 
 ### 5.1 Swing and Java2D renderer
 

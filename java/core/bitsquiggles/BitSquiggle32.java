@@ -7,6 +7,7 @@
 package bitsquiggles;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,9 @@ public final class BitSquiggle32 {
     }
 
     public record Edge(int startRow, int startColumn, int endRow, int endColumn) {}
+
+    /** Inclusive cell rectangle produced by {@link #extractSmoothBlobs(byte[])}. */
+    public record SmoothBlob(int topRow, int leftColumn, int bottomRow, int rightColumn) {}
 
     public record OklchColor(double L, double C, double h, String hex) {}
 
@@ -135,7 +139,7 @@ public final class BitSquiggle32 {
      * Bijective MurmurHash3 finalizer with a Weyl offset. Every unsigned 32-bit
      * input maps to a distinct output; multiplication constants are odd.
      */
-    static int mix32(int value) {
+    public static int mix32(int value) {
         int mixed = value + 0x9E3779B9;
         mixed ^= mixed >>> 16;
         mixed *= 0x85EBCA6B;
@@ -185,7 +189,7 @@ public final class BitSquiggle32 {
     }
 
     /** Whether an edge mask belongs to the complete family represented by mode. */
-    static boolean matchesMode(byte[] connections, Mode mode) {
+    public static boolean matchesMode(byte[] connections, Mode mode) {
         ModeDefinition definition = MODE_DEFINITIONS[mode.ordinal()];
         for (ConnectionClass connectionClass : definition.classes()) {
             Occurrence first = connectionClass.occurrences()[0];
@@ -466,5 +470,200 @@ public final class BitSquiggle32 {
                     entry.getKey(), entry.getValue().toArray(Occurrence[]::new));
         }
         return new ModeDefinition(mode, result);
+    }
+
+    /**
+     * Extract the canonical rounded-rectangle decomposition for an edge mask.
+     * Each result is an inclusive rectangle of fully connected active cells.
+     * This post-processing helper allocates no candidate list.
+     */
+    public static SmoothBlob[] extractSmoothBlobs(byte[] connections) {
+        long requiredEdges = requiredEdgeMask(connections);
+        int requiredJunctions = requiredJunctionMask(requiredEdges);
+        long coveredEdges = 0;
+        int coveredJunctions = 0;
+        SmoothBlob[] result = new SmoothBlob[EDGE_COUNT + (ROWS - 1) * (COLUMNS - 1)];
+        int count = 0;
+
+        while (coveredEdges != requiredEdges || coveredJunctions != requiredJunctions) {
+            int anchorEdge = firstUncoveredEdge(requiredEdges, coveredEdges);
+            int anchorJunction = anchorEdge < 0
+                    ? firstUncoveredJunction(requiredJunctions, coveredJunctions) : -1;
+            int anchorTop;
+            int anchorLeft;
+            int anchorBottom;
+            int anchorRight;
+            if (anchorEdge >= 0) {
+                Edge edge = EDGES[anchorEdge];
+                anchorTop = edge.startRow();
+                anchorLeft = edge.startColumn();
+                anchorBottom = edge.endRow();
+                anchorRight = edge.endColumn();
+            } else {
+                anchorTop = anchorJunction / (COLUMNS - 1);
+                anchorLeft = anchorJunction % (COLUMNS - 1);
+                anchorBottom = anchorTop + 1;
+                anchorRight = anchorLeft + 1;
+            }
+
+            long bestEdges = 0;
+            int bestJunctions = 0;
+            int bestTop = 0;
+            int bestLeft = 0;
+            int bestBottom = 0;
+            int bestRight = 0;
+
+            int leftInclusive = 0;
+            for (int top = anchorTop; top >= 0; top--) {
+                for (int left = anchorLeft; left >= leftInclusive; left--) {
+                    int rightExclusive = COLUMNS;
+                    boolean stopLeftExpansion = false;
+                    for (int bottom = anchorBottom; bottom < ROWS; bottom++) {
+                        for (int right = anchorRight; right < rightExclusive; right++) {
+                            long edges = connectedRectangleEdgeMask(
+                                    top, left, bottom, right, requiredEdges);
+                            if (edges == 0) {
+                                if (bottom == anchorBottom && right == anchorRight) {
+                                    leftInclusive = left + 1;
+                                    stopLeftExpansion = true;
+                                } else {
+                                    rightExclusive = right;
+                                }
+                                break;
+                            }
+                            int junctions = rectangleJunctionMask(
+                                    top, left, bottom, right, requiredJunctions);
+                            long newEdges = edges & ~coveredEdges;
+                            int newJunctions = junctions & ~coveredJunctions;
+                            if (newEdges == 0 && newJunctions == 0) continue;
+
+                            if (bestEdges == 0 || isBetterBlob(
+                                    top, left, bottom, right, newEdges, newJunctions,
+                                    bestTop, bestLeft, bestBottom, bestRight,
+                                    bestEdges & ~coveredEdges,
+                                    bestJunctions & ~coveredJunctions)) {
+                                bestTop = top;
+                                bestLeft = left;
+                                bestBottom = bottom;
+                                bestRight = right;
+                                bestEdges = edges;
+                                bestJunctions = junctions;
+                            }
+                        }
+                        if (stopLeftExpansion || rightExclusive == anchorRight) break;
+                    }
+                    if (stopLeftExpansion) break;
+                }
+            }
+
+            if (bestEdges == 0) throw new IllegalStateException("uncoverable smooth feature");
+            result[count++] = new SmoothBlob(bestTop, bestLeft, bestBottom, bestRight);
+            coveredEdges |= bestEdges;
+            coveredJunctions |= bestJunctions;
+        }
+        return Arrays.copyOf(result, count);
+    }
+
+    private static long requiredEdgeMask(byte[] connections) {
+        if (connections == null || connections.length != EDGE_COUNT) {
+            throw new IllegalArgumentException("connections must contain 58 entries");
+        }
+        long result = 0;
+        for (int edgeIndex = 0; edgeIndex < EDGE_COUNT; edgeIndex++) {
+            if (connections[edgeIndex] != 0 && connections[edgeIndex] != 1) {
+                throw new IllegalArgumentException("connections must contain only zeroes and ones");
+            }
+            if (connections[edgeIndex] == 1) result |= 1L << edgeIndex;
+        }
+        return result;
+    }
+
+    private static int requiredJunctionMask(long requiredEdges) {
+        int result = 0;
+        for (int row = 0; row < ROWS - 1; row++) {
+            for (int column = 0; column < COLUMNS - 1; column++) {
+                if (connectedRectangleEdgeMask(
+                                row, column, row + 1, column + 1, requiredEdges) != 0) {
+                    result |= 1 << junctionIndex(row, column);
+                }
+            }
+        }
+        return result;
+    }
+
+    /** Return zero if any internal edge is missing, otherwise return all internal edges. */
+    private static long connectedRectangleEdgeMask(
+            int top, int left, int bottom, int right, long requiredEdges) {
+        long result = 0;
+        for (int row = top; row <= bottom; row++) {
+            for (int column = left; column <= right; column++) {
+                if (column < right) {
+                    long horizontal = horizontalEdgeBit(row, column);
+                    if ((requiredEdges & horizontal) == 0) return 0;
+                    result |= horizontal;
+                }
+                if (row < bottom) {
+                    long vertical = verticalEdgeBit(row, column);
+                    if ((requiredEdges & vertical) == 0) return 0;
+                    result |= vertical;
+                }
+            }
+        }
+        return result;
+    }
+
+    private static int rectangleJunctionMask(
+            int top, int left, int bottom, int right, int requiredJunctions) {
+        int result = 0;
+        for (int row = top; row < bottom; row++) {
+            for (int column = left; column < right; column++) {
+                int bit = 1 << junctionIndex(row, column);
+                if ((requiredJunctions & bit) != 0) result |= bit;
+            }
+        }
+        return result;
+    }
+
+    private static boolean isBetterBlob(
+            int top, int left, int bottom, int right, long newEdges, int newJunctions,
+            int bestTop, int bestLeft, int bestBottom, int bestRight,
+            long bestNewEdges, int bestNewJunctions) {
+        int junctionCount = Integer.bitCount(newJunctions);
+        int bestJunctionCount = Integer.bitCount(bestNewJunctions);
+        if (junctionCount != bestJunctionCount) return junctionCount > bestJunctionCount;
+        int edgeCount = Long.bitCount(newEdges);
+        int bestEdgeCount = Long.bitCount(bestNewEdges);
+        if (edgeCount != bestEdgeCount) return edgeCount > bestEdgeCount;
+        int area = (bottom - top + 1) * (right - left + 1);
+        int bestArea = (bestBottom - bestTop + 1) * (bestRight - bestLeft + 1);
+        if (area != bestArea) return area < bestArea;
+        if (top != bestTop) return top < bestTop;
+        if (left != bestLeft) return left < bestLeft;
+        if (bottom != bestBottom) return bottom < bestBottom;
+        return right < bestRight;
+    }
+
+    private static int firstUncoveredEdge(long requiredEdges, long coveredEdges) {
+        long remaining = requiredEdges & ~coveredEdges;
+        return remaining == 0 ? -1 : Long.numberOfTrailingZeros(remaining);
+    }
+
+    private static int firstUncoveredJunction(int requiredJunctions, int coveredJunctions) {
+        return Integer.numberOfTrailingZeros(requiredJunctions & ~coveredJunctions);
+    }
+
+    private static long horizontalEdgeBit(int row, int column) {
+        int rowOffset = row == ROWS - 1 ? row * (2 * COLUMNS - 1) + column
+                : row * (2 * COLUMNS - 1) + 2 * column;
+        return 1L << rowOffset;
+    }
+
+    private static long verticalEdgeBit(int row, int column) {
+        int columnOffset = column == COLUMNS - 1 ? 2 * COLUMNS - 2 : 2 * column + 1;
+        return 1L << (row * (2 * COLUMNS - 1) + columnOffset);
+    }
+
+    private static int junctionIndex(int row, int column) {
+        return row * (COLUMNS - 1) + column;
     }
 }

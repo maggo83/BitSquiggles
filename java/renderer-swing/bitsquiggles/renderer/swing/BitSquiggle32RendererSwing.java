@@ -11,7 +11,6 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.Area;
-import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 
 /** Optional Swing/Java2D renderer for a {@link BitSquiggle32.VisSpec}. */
@@ -40,41 +39,14 @@ public final class BitSquiggle32RendererSwing {
                 offsetX, offsetY, scaledWidth, scaledHeight, 2.0 * scale, 2.0 * scale));
 
         Area foreground = new Area();
-        for (int row = 0; row < BitSquiggle32.ROWS; row++) {
-            for (int column = 0; column < BitSquiggle32.COLUMNS; column++) {
-                if (spec.cells()[row][column] == 0) continue;
-                double x = offsetX + (1 + column * 3) * scale;
-                double y = offsetY + (1 + row * 3) * scale;
-                foreground.add(new Area(new RoundRectangle2D.Double(
-                        x, y, 2 * scale, 2 * scale, 2 * scale, 2 * scale)));
-            }
-        }
-
-        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
-        for (int index = 0; index < edges.length; index++) {
-            if (spec.connections()[index] == 0) continue;
-            BitSquiggle32.Edge edge = edges[index];
-            double x = offsetX + (1 + edge.startColumn() * 3) * scale;
-            double y = offsetY + (1 + edge.startRow() * 3) * scale;
-            if (edge.startRow() == edge.endRow()) {
-                foreground.add(new Area(new Rectangle2D.Double(x + scale, y, 3 * scale, 2 * scale)));
-            } else {
-                foreground.add(new Area(new Rectangle2D.Double(x, y + scale, 2 * scale, 3 * scale)));
-            }
-        }
-
-        for (int row = 0; row < BitSquiggle32.ROWS - 1; row++) {
-            for (int column = 0; column < BitSquiggle32.COLUMNS - 1; column++) {
-                if (edgeValue(spec, row, column, row, column + 1) == 1
-                        && edgeValue(spec, row + 1, column, row + 1, column + 1) == 1
-                        && edgeValue(spec, row, column, row + 1, column) == 1
-                        && edgeValue(spec, row, column + 1, row + 1, column + 1) == 1) {
-                    foreground.add(new Area(new Rectangle2D.Double(
-                            offsetX + (3 + column * 3) * scale,
-                            offsetY + (3 + row * 3) * scale,
-                            scale, scale)));
-                }
-            }
+        for (BitSquiggle32.SmoothBlob blob : BitSquiggle32.extractSmoothBlobs(
+                spec.connections())) {
+            double x = offsetX + (1 + blob.leftColumn() * 3) * scale;
+            double y = offsetY + (1 + blob.topRow() * 3) * scale;
+            double blobWidth = (2 + 3 * (blob.rightColumn() - blob.leftColumn())) * scale;
+            double blobHeight = (2 + 3 * (blob.bottomRow() - blob.topRow())) * scale;
+            foreground.add(new Area(new RoundRectangle2D.Double(
+                    x, y, blobWidth, blobHeight, 2 * scale, 2 * scale)));
         }
 
         graphics.setColor(parseHex(spec.foreground().hex()));
@@ -97,20 +69,6 @@ public final class BitSquiggle32RendererSwing {
                 }
             }
         }
-    }
-
-    private static int edgeValue(
-            BitSquiggle32.VisSpec spec, int startRow, int startColumn,
-            int endRow, int endColumn) {
-        BitSquiggle32.Edge[] edges = BitSquiggle32.edges();
-        for (int index = 0; index < edges.length; index++) {
-            BitSquiggle32.Edge edge = edges[index];
-            if (edge.startRow() == startRow && edge.startColumn() == startColumn
-                    && edge.endRow() == endRow && edge.endColumn() == endColumn) {
-                return spec.connections()[index];
-            }
-        }
-        return 0;
     }
 
     private static Color parseHex(String hex) {
