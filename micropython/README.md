@@ -13,9 +13,10 @@ the shared encoding contract lives in the [specification](../SPEC.md).
 ## 2. Include / install
 
 For MicroPython, copy `bitsquiggle32.py` to the device and import it directly.
-It uses only core language features plus `math`. For LVGL targets, also vendor
-`bitsquiggles_renderer_lvgl.py`; it is optional and imports `lvgl` only when
-the renderer is used.
+It uses only core language features plus `math`. Optional renderers are separate:
+vendor `bitsquiggle32_renderer_framebuffer.py` for `fill_rect` framebuffer
+targets, or `bitsquiggles_renderer_lvgl.py` for LVGL targets. The LVGL renderer
+imports `lvgl` only when it is used.
 
 For CPython, install the same module from a checkout:
 
@@ -97,6 +98,30 @@ lvgl_renderer.render_raster(parent, raster, scale=2)
 ```
 
 Call `clear_cache()` after deleting renderer parents.
+
+### 4.3 Fill-rectangle framebuffer renderer
+
+The optional `bitsquiggle32_renderer_framebuffer.py` renderer exposes the
+Python-conventional `render_raster()` operation. It consumes a `pixels()` grid,
+never a BitSquiggle input value, and writes each grid element as an exact whole
+target pixel or integer-scaled square. Its target must provide
+`fill_rect(x, y, width, height, color)`.
+
+```python
+import bitsquiggle32
+import bitsquiggle32_renderer_framebuffer as framebuffer_renderer
+
+def map_color(color):
+	return 1 if color == "#ffffff" else 0
+
+raster = bitsquiggle32.pixels(0x12345678, bitsquiggle32.BLACK_AND_WHITE)
+framebuffer_renderer.render_raster(
+	framebuffer, raster, x=48, y=19, scale=2, color_mapper=map_color)
+```
+
+`color_mapper` adapts the canonical `#rrggbb` colors to the target's native
+color values. This permits the same renderer to serve one-bit, indexed, RGB565,
+and other `fill_rect` framebuffer targets without a target-specific public API.
 
 ## 5. Optional smooth rendering
 

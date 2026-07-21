@@ -4,6 +4,7 @@ Grug 2-Clause License: do what want; not sue grug.
 """
 
 import bitsquiggle32
+import bitsquiggle32_renderer_framebuffer
 
 _checks = 0
 
@@ -159,6 +160,54 @@ def test_pixel_renderer_is_lossless():
                 bridge = grid["pixels"][(y + 2) * 16 + x]
             check(bridge == visual["connections"][edge_index],
                   "recoverable edge")
+
+
+class _RecordingFramebuffer:
+    def __init__(self):
+        self.calls = []
+
+    def fill_rect(self, x, y, width, height, color):
+        self.calls.append((x, y, width, height, color))
+
+
+def _one_bit_color(color):
+    if color == "#000000":
+        return 0
+    if color == "#ffffff":
+        return 1
+    raise ValueError("expected black-and-white color")
+
+
+def test_framebuffer_renderer_is_exact():
+    for value in (0, 1, 0x89ABCDEF, 0xFFFFFFFF):
+        grid = bitsquiggle32.pixels(value, bitsquiggle32.BLACK_AND_WHITE)
+        target = _RecordingFramebuffer()
+        bitsquiggle32_renderer_framebuffer.render_raster(
+            target, grid, x=5, y=7, scale=2, color_mapper=_one_bit_color)
+
+        background = _one_bit_color(grid["background"]["hex"])
+        foreground = _one_bit_color(grid["foreground"]["hex"])
+        check(target.calls[0] == (5, 7, 32, 44, background),
+              "framebuffer renderer paints complete scaled background first")
+        active = sum(grid["pixels"])
+        check(len(target.calls) == active + 1,
+              "framebuffer renderer paints each foreground pixel once")
+        for row in range(grid["height"]):
+            for column in range(grid["width"]):
+                if not grid["pixels"][row * grid["width"] + column]:
+                    continue
+                check((5 + column * 2, 7 + row * 2, 2, 2, foreground)
+                      in target.calls[1:], "framebuffer foreground pixel")
+
+    grid = bitsquiggle32.pixels(0, bitsquiggle32.BLACK_AND_WHITE)
+    expect_failure(lambda: bitsquiggle32_renderer_framebuffer.render_raster(
+        object(), grid), "reject framebuffer without fill_rect")
+    expect_failure(lambda: bitsquiggle32_renderer_framebuffer.render_raster(
+        _RecordingFramebuffer(), grid, scale=0), "reject non-positive scale")
+    bad_grid = dict(grid)
+    bad_grid["width"] = 15
+    expect_failure(lambda: bitsquiggle32_renderer_framebuffer.render_raster(
+        _RecordingFramebuffer(), bad_grid), "reject non-canonical dimensions")
 
 
 def test_colors_parity_and_golden_vector():
@@ -339,6 +388,7 @@ def main():
     test_sampled_monochrome_injectivity()
     test_black_and_white_colors_and_polarity()
     test_pixel_renderer_is_lossless()
+    test_framebuffer_renderer_is_exact()
     test_colors_parity_and_golden_vector()
     test_slash_wrap_regression()
     test_smooth_blobs()
