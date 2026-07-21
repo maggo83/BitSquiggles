@@ -5,133 +5,114 @@
 
 ## 1. Status and scope
 
-This guide explains how to integrate the Java 17+ reference implementation.
-Project purpose, safety boundaries, and release status live in the
-[project overview](../README.md); the shared encoding contract lives in the
-[specification](../SPEC.md).
+This guide covers the Java 17+ core and the bundled Swing/Java2D and JavaFX
+renderers. **Use the selected renderer class as the normal application entry
+point**: it statically delegates the complete core API and adds rendering.
+Import `bitsquiggles.BitSquiggle32` directly only for a non-rendering or
+separately rendered integration.
 
-The public core is `bitsquiggles.BitSquiggle32`. The optional
-`BitSquiggle32RendererSwing` and `BitSquiggle32RendererJavaFX` render
-Swing/Java2D and JavaFX output respectively, while `BitSquigglesDemo` is a
-separate Swing application that wires controls, views, and both renderers
-together.
+Project purpose, safety boundaries, and release status live in the
+[project overview](../README.md); shared behavior is in [SPEC.md](../SPEC.md).
 
 ## 2. Include / install
 
-This port is currently source-only. For a dependency-free JPMS core, compile
-`core/module-info.java` with `core/bitsquiggles/BitSquiggle32.java`. Copy that
-core source into an application when JPMS is not required.
+### 2.1 Renderer-first integration (primary)
 
-The Java module is `io.github.maggo83.bitsquiggles`. It has no third-party
-or desktop dependency. The optional
-`io.github.maggo83.bitsquiggles.renderer.swing` module and Swing demo use the
-standard JDK `java.desktop` module. The optional
-`io.github.maggo83.bitsquiggles.renderer.javafx` module requires JavaFX
-`javafx.graphics`.
+This port is source-only. Compile the dependency-free core module and the
+renderer selected by the application. The Swing renderer uses standard JDK
+`java.desktop`; the JavaFX renderer needs the JavaFX SDK `javafx.graphics`
+module.
 
-## 3. Create a BitSquiggle
-
-Java accepts every unsigned 32-bit bit pattern through `int`. Parse external
-hexadecimal values with a wider type, then cast to `int`:
-
-```java
-import bitsquiggles.BitSquiggle32;
-
-int bits = (int) Long.parseLong("12345678", 16);
-BitSquiggle32.VisSpec visual = BitSquiggle32.spec(bits);
-BitSquiggle32.PixelGrid raster = BitSquiggle32.pixels(bits);
-
-System.out.println(visual.actualMode().label());
-System.out.println(raster.foreground().hex());
+```bash
+mkdir -p out/core out/renderer-swing
+javac -d out/core java/core/module-info.java \
+    java/core/bitsquiggles/BitSquiggle32.java
+javac -d out/renderer-swing --module-path out/core \
+    java/renderer-swing/module-info.java \
+    java/renderer-swing/bitsquiggles/renderer/swing/BitSquiggle32RendererSwing.java
 ```
 
-Both methods also accept an optional `BitSquiggle32.Style`; the one-argument
-overloads use `STANDARD`. The shared output contract and every required core
-operation are defined in the [core API contract](../spec/06-api.md).
-Arrays held by the returned records are mutable; treat them as immutable outputs
-or copy them before sharing them.
+For JavaFX, replace the last command with the JavaFX compilation command in
+[section 5](#5-test-conformance). Import only the chosen renderer class in
+application code.
 
-The available styles are `STANDARD`, `HIGH_CONTRAST`, `MONOCHROME`, and
-`BLACK_AND_WHITE`. The last style produces only `#000000` and `#ffffff` after
-the parity-derived polarity swap. Its complete bordered raster is unique by
-itself; color and intermediate luminance are optional comparison aids.
+### 2.2 Core-only option
 
-Java exposes these static operations on `BitSquiggle32`:
+Compile `core/module-info.java` with `core/bitsquiggles/BitSquiggle32.java` and
+import `bitsquiggles.BitSquiggle32` only when the application does not render
+or owns a different renderer. The core requires only `java.base`.
 
-| Operation | Result |
+## 3. Render a BitSquiggle
+
+Pass canonical output to a renderer: call `pixels()` before `renderRaster()` or
+`spec()` before `renderSmooth()`. Both renderer classes re-export the complete
+core surface, so no separate core import is needed. Java accepts every unsigned
+32-bit bit pattern through `int`.
+
+### 3.1 Swing and Java2D renderer
+
+```java
+import static bitsquiggles.renderer.swing.BitSquiggle32RendererSwing.*;
+
+int input = (int) Long.parseLong("12345678", 16);
+var raster = pixels(input, BLACK_AND_WHITE);
+renderRaster(graphics, raster, 4);
+
+var visual = spec(input, HIGH_CONTRAST);
+renderSmooth(graphics, visual, 160, 220);
+```
+
+`renderRaster()` paints whole `pixelSize` squares. `renderSmooth()` draws the
+canonical smooth union into the available width and height.
+
+### 3.2 JavaFX renderer
+
+```java
+import static bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX.*;
+
+int input = (int) Long.parseLong("12345678", 16);
+var raster = pixels(input, BLACK_AND_WHITE);
+renderRaster(graphics, raster, 4);
+
+var visual = spec(input, HIGH_CONTRAST);
+renderSmooth(graphics, visual, 160, 220);
+```
+
+The [exact raster](../spec/04-exact-raster.md) is the lossless baseline. Smooth
+output is presentation-only and follows [smooth output](../spec/05-smooth-output.md).
+
+## 4. Exposed API
+
+Shared API semantics are defined in the [API contract](../spec/06-api.md). The
+[presentation chapter](../spec/03-presentation.md) owns shared style, color,
+and polarity rules.
+
+### 4.1 Renderer entry points
+
+| Renderer class | Core façade | Rendering operations |
+| --- | --- | --- |
+| `BitSquiggle32RendererSwing` | Complete static `BitSquiggle32` API and constants | `renderRaster(Graphics2D, PixelGrid, int)`, `renderSmooth(Graphics2D, VisSpec, int, int)` |
+| `BitSquiggle32RendererJavaFX` | Complete static `BitSquiggle32` API and constants | `renderRaster(GraphicsContext, PixelGrid, int)`, `renderSmooth(GraphicsContext, VisSpec, int, int)` |
+
+### 4.2 Core API
+
+| Operation | Java result |
 | --- | --- |
-| `mix32(int)` | mixed `int` bit pattern |
-| `edges()` | `Edge[]` |
-| `freeConnectionCount(Mode)` | free-class count |
-| `matchesMode(byte[], Mode)` | complete-family membership |
-| `spec(int[, Style])` | `VisSpec` |
-| `pixels(int[, Style])` | `PixelGrid` |
-| `extractSmoothBlobs(byte[])` | `SmoothBlob[]` |
+| `mix32(int)` | Mixed `int` bit pattern. |
+| `edges()` | `Edge[]`. |
+| `freeConnectionCount(Mode)` | Free-class count. |
+| `matchesMode(byte[], Mode)` | Complete-family membership. |
+| `spec(int[, Style])` | `VisSpec`. |
+| `pixels(int[, Style])` | `PixelGrid`. |
+| `extractSmoothBlobs(byte[])` | `SmoothBlob[]`. |
 
-`Style` and `Mode` are public enums. Public records are `Edge`, `OklchColor`,
-`VisSpec`, `PixelGrid`, and `SmoothBlob`. Java accepts every `int` bit pattern
-as an unsigned 32-bit input.
+Public constants include `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`, and
+`PIXEL_HEIGHT`; styles are `STANDARD`, `HIGH_CONTRAST`, `MONOCHROME`, and
+`BLACK_AND_WHITE`. `Style` and `Mode` are public enums; public records are
+`Edge`, `OklchColor`, `VisSpec`, `PixelGrid`, and `SmoothBlob`. Returned record
+arrays are mutable; treat them as immutable or copy before sharing.
 
-For an application that renders, call these operations through its selected
-renderer entry point instead of importing the core class separately.
-
-## 4. Render the exact raster
-
-The `pixels()` result is the normative $16\times22$ binary raster. Render its
-row-major `pixels()` values as whole target pixels or integer-scaled squares;
-`0` is background and `1` is foreground. See the complete
-[exact-raster rules](../spec/04-exact-raster.md).
-
-### 4.1 Swing and Java2D renderer
-
-```java
-import static bitsquiggles.renderer.swing.BitSquiggle32RendererSwing.*;
-
-var raster = pixels(bits, BLACK_AND_WHITE);
-renderRaster(graphics, raster, pixelSize);
-```
-
-### 4.2 JavaFX renderer
-
-```java
-import static bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX.*;
-
-var raster = pixels(bits, BLACK_AND_WHITE);
-renderRaster(graphics, raster, pixelSize);
-```
-
-## 5. Optional smooth rendering
-
-Smooth rendering is presentation only: it must preserve selected and
-unselected connections without changing the exact-raster identity. Follow the
-[smooth-output constraints](../spec/05-smooth-output.md) and the renderer
-naming convention in the [core API contract](../spec/06-api.md).
-The bundled Swing and JavaFX renderers use `extractSmoothBlobs()` to reduce
-foreground primitives while preserving the canonical smooth union.
-
-### 5.1 Swing and Java2D renderer
-
-```java
-import static bitsquiggles.renderer.swing.BitSquiggle32RendererSwing.*;
-
-var visual = spec(bits, HIGH_CONTRAST);
-renderSmooth(graphics, visual, width, height);
-```
-
-### 5.2 JavaFX renderer
-
-```java
-import static bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX.*;
-
-var visual = spec(bits, HIGH_CONTRAST);
-renderSmooth(graphics, visual, width, height);
-```
-
-The renderers depend on their respective desktop toolkit but the
-`BitSquiggle32` core does not. The separate `BitSquigglesDemo` application
-demonstrates Swing renderer use alongside input controls and exact raster views.
-
-## 6. Test conformance
+## 5. Test conformance
 
 From the repository root:
 
@@ -151,40 +132,36 @@ java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles
 java --module-path out/core --module io.github.maggo83.bitsquiggles/bitsquiggles.ConformanceFixtureGenerator --check
 ```
 
-To compile the optional JavaFX module, point `JAVAFX_LIB` at the JavaFX SDK's
-`lib` directory and compile it independently from the headless core:
+Compile JavaFX independently by pointing `JAVAFX_LIB` at the SDK `lib` directory:
 
 ```bash
-javac -d out/renderer-javafx \
-    --module-path "out/core:$JAVAFX_LIB" \
+javac -d out/renderer-javafx --module-path "out/core:$JAVAFX_LIB" \
     java/renderer-javafx/module-info.java \
     java/renderer-javafx/bitsquiggles/renderer/javafx/BitSquiggle32RendererJavaFX.java
 ```
 
-The last two commands verify generated README SVGs and the shared versioned
-conformance fixture. The complete conformance requirements are in the
-[conformance](../spec/07-conformance.md).
+The generator checks validate README SVGs and the versioned fixture. See
+[conformance](../spec/07-conformance.md) for common requirements.
 
-## 7. Package / release notes
+## 6. Package / release notes
 
-Consume this port as source today: copy the core source into an application or
-add the source module to its build. The core has no third-party runtime
-dependency; the optional Java2D renderer and Swing demo use standard JDK APIs,
-and the JavaFX renderer uses JavaFX Graphics.
+Consume this port as source today. The core has no third-party dependency; the
+Swing renderer uses standard JDK APIs, and the JavaFX renderer uses JavaFX
+Graphics. Select a renderer module for normal visual integrations.
 
-## 8. Limitations and compatibility
+## 7. Limitations and compatibility
 
 This implementation requires Java 17 or later because it uses records and
-modern switch syntax. It accepts every `int` bit pattern as an unsigned 32-bit
-input; see the [shared input contract](../spec/01-overview.md).
+modern switch syntax. See the [shared input contract](../spec/01-overview.md)
+for unsigned-`int` value semantics.
 
 | Surface | Verified target | Notes |
 | --- | --- | --- |
 | Core module | Java 17+ | JPMS dependency closure is `java.base` only. |
-| Swing renderer and demo | Java 17+ with `java.desktop` | Optional `renderer-swing` module. |
-| JavaFX renderer | Java 17+ with JavaFX Graphics | Optional `renderer-javafx` module. |
-| Reference tests | Java 17+ | Runs on the CI JDK and checks generated artifacts. |
+| Swing renderer and demo | Java 17+ with `java.desktop` | Renderer-first desktop option. |
+| JavaFX renderer | Java 17+ with JavaFX Graphics | Optional target module. |
+| Reference tests | Java 17+ | Checks generated artifacts and fixtures. |
 
-## 9. License
+## 8. License
 
 Grug 2-Clause License. See the repository-level [LICENSE](../LICENSE).

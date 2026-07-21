@@ -5,91 +5,78 @@
 
 ## 1. Status and scope
 
-This guide explains how to integrate the dependency-free CPython and
-MicroPython-compatible reference implementation. Project purpose, safety
-boundaries, and release status live in the [project overview](../README.md);
-the shared encoding contract lives in the [specification](../SPEC.md).
+This guide covers the dependency-free CPython and MicroPython-compatible core,
+the LVGL renderer, and the generic fill-rectangle framebuffer renderer. **Use a
+selected renderer module as the normal application import**: it re-exports the
+complete core API and adds its rendering operations. Import the core alone only
+for a non-rendering or separately rendered integration.
+
+Project purpose, safety boundaries, and release status live in the
+[project overview](../README.md); shared behavior is in [SPEC.md](../SPEC.md).
 
 ## 2. Include / install
 
-For MicroPython, copy `bitsquiggle32.py` to the device. To render, also copy the
-selected renderer: `bitsquiggle32_renderer_framebuffer.py` for `fill_rect`
-framebuffers or `bitsquiggles_renderer_lvgl.py` for LVGL. Import the selected
-renderer in the application. The LVGL renderer imports `lvgl` only when used.
+### 2.1 Renderer-first integration (primary)
 
-For CPython, install the same module from a checkout:
+For MicroPython, copy `bitsquiggle32.py` and one selected renderer to the
+device:
+
+- `bitsquiggles_renderer_lvgl.py` for LVGL;
+- `bitsquiggle32_renderer_framebuffer.py` for any target exposing
+  `fill_rect(x, y, width, height, color)`.
+
+Import the selected renderer in application code. It provides the core façade
+and its render operation. The LVGL module imports `lvgl` only when that renderer
+is selected.
+
+For CPython, install the core from a checkout, then vendor the selected renderer
+source from this directory alongside it:
 
 ```bash
 python3 -m pip install .
 ```
 
-No third-party runtime dependency is installed.
+No third-party runtime dependency is installed by the core.
 
-## 3. Create a BitSquiggle
+### 2.2 Core-only option
+
+Copy or install only `bitsquiggle32.py` when the application does not draw or
+owns a different renderer:
 
 ```python
 import bitsquiggle32
 
-visual = bitsquiggle32.spec(0x12345678)
 raster = bitsquiggle32.pixels(0x12345678)
-print(visual["actual_mode"], raster["foreground"]["hex"])
 ```
 
-Both `spec()` and `pixels()` accept the same unsigned input and optional style.
-The dictionary fields, supported styles, constants, helpers, and input
-validation rules are documented by this guide; shared semantics are in the
-[core API contract](../spec/06-api.md).
+## 3. Render a BitSquiggle
 
-### 3.1 Core API
+Use the renderer entry point to derive canonical output and render it. Call
+`pixels()` before `render_raster()` and `spec()` before `render_smooth()`;
+render operations consume those canonical values, never a BitSquiggle input.
 
-The module exports the constants `ROWS`, `COLUMNS`, `EDGE_COUNT`,
-`PIXEL_WIDTH`, `PIXEL_HEIGHT`, `EDGES`, `STYLES`, and `MODES`; styles
-`STANDARD`, `HIGH_CONTRAST`, `MONOCHROME`, `BLACK_AND_WHITE`; and mode labels `LEFT_RIGHT`,
-`TOP_BOTTOM`, `HALF_TURN`, and `DIAGONAL_SLASH`.
+### 3.1 LVGL renderer
 
-| Function | Python / MicroPython result |
-| --- | --- |
-| `mix32(bits)` | Mixed unsigned 32-bit `int`. |
-| `free_connection_count(mode)` | Independent class count for a mode label. |
-| `matches_mode(connections, mode)` | Whether the 58-entry connection sequence belongs to the mode family. |
-| `spec(bits[, style])` | Canonical visual `dict`. |
-| `pixels(bits[, style])` | Exact raster `dict`. |
-| `smooth_blobs(connections)` | Ordered tuple of `(top_row, left_column, bottom_row, right_column)` tuples. |
-
-`bits` must be an `int` in $[0,2^{32}-1]$; unknown styles raise `ValueError`.
-`smooth_blobs()` accepts a 58-entry sequence containing only `0` and `1`, and
-raises `ValueError` otherwise. Its output contains at most 82 blobs and uses
-inclusive cell coordinates. Pass `visual["connections"]` directly when
-rendering `spec()` output.
-
-## 4. Render the exact raster
-
-The `pixels()` result is the normative $16\times22$ binary raster. Render its
-row-major `pixels` values as whole target pixels or integer-scaled squares;
-`0` is background and `1` is foreground. See the complete
-[exact-raster rules](../spec/04-exact-raster.md).
-
-### 4.1 LVGL renderer
-
-The optional `bitsquiggles_renderer_lvgl.py` module renders the exact raster as
-a cached RGB565 image with integer scaling:
+The LVGL renderer supports exact raster and smooth output:
 
 ```python
 import bitsquiggles_renderer_lvgl as bitsquiggles
 
-raster = bitsquiggles.pixels(0x12345678, bitsquiggles.HIGH_CONTRAST)
-bitsquiggles.render_raster(parent, raster, scale=2)
+input_value = 0x12345678
+raster = bitsquiggles.pixels(input_value, bitsquiggles.BLACK_AND_WHITE)
+image = bitsquiggles.render_raster(parent, raster, scale=2)
+
+visual = bitsquiggles.spec(input_value, bitsquiggles.HIGH_CONTRAST)
+smooth = bitsquiggles.render_smooth(parent, visual, scale=4)
 ```
 
-Call `clear_cache()` after deleting renderer parents.
+`render_raster()` returns an integer-scaled RGB565 LVGL image. `render_smooth()`
+returns a rounded LVGL canvas using canonical smooth blobs. Call `clear_cache()`
+after deleting parents that contain renderer output.
 
-### 4.2 Fill-rectangle framebuffer renderer
+### 3.2 Fill-rectangle framebuffer renderer
 
-The optional `bitsquiggle32_renderer_framebuffer.py` renderer provides the
-Python-conventional `render_raster()` operation. It consumes a `pixels()` grid,
-never a BitSquiggle input value, and writes each grid element as an exact whole
-target pixel or integer-scaled square. Its target must provide
-`fill_rect(x, y, width, height, color)`.
+The framebuffer renderer supports exact raster output:
 
 ```python
 import bitsquiggle32_renderer_framebuffer as bitsquiggles
@@ -102,72 +89,72 @@ bitsquiggles.render_raster(
     framebuffer, raster, x=48, y=19, scale=2, color_mapper=map_color)
 ```
 
-`color_mapper` adapts the canonical `#rrggbb` colors to the target's native
-color values. This permits the same renderer to serve one-bit, indexed, RGB565,
-and other `fill_rect` framebuffer targets without a target-specific public API.
+It paints each source pixel as a whole target pixel or integer-scaled square.
+`color_mapper` adapts canonical `#rrggbb` colors to one-bit, indexed, RGB565,
+or other native values. Smooth output is not provided by this renderer.
 
-## 5. Optional smooth rendering
+## 4. Exposed API
 
-Smooth rendering is presentation only: it must preserve selected and
-unselected connections without changing the exact-raster identity. Follow the
-[smooth-output constraints](../spec/05-smooth-output.md) and the renderer
-naming convention in the [core API contract](../spec/06-api.md).
+Shared API semantics are defined in the [API contract](../spec/06-api.md). The
+[presentation chapter](../spec/03-presentation.md) owns shared style, color, and
+polarity rules.
 
-### 5.1 LVGL renderer
+### 4.1 Renderer entry points
 
-The optional `bitsquiggles_renderer_lvgl.py` module supports LVGL targets
-without adding an LVGL dependency to the core. Its rounded canvas presentation
-uses the core's canonical `smooth_blobs()` via `render_smooth()`:
+| Renderer import | Core façade | Rendering operations |
+| --- | --- | --- |
+| `bitsquiggles_renderer_lvgl` | Complete core API | `render_raster(parent, grid[, scale])`, `render_smooth(parent, visual[, scale, bordered])`, `clear_cache()` |
+| `bitsquiggle32_renderer_framebuffer` | Complete core API | `render_raster(target, grid[, x, y, scale, color_mapper])` |
 
-```python
-import bitsquiggles_renderer_lvgl as bitsquiggles
+### 4.2 Core API
 
-visual = bitsquiggles.spec(0x12345678, bitsquiggles.HIGH_CONTRAST)
-bitsquiggles.render_smooth(parent, visual, scale=4)
-```
+| Function | Python / MicroPython result |
+| --- | --- |
+| `mix32(bits)` | Mixed unsigned 32-bit `int`. |
+| `free_connection_count(mode)` | Independent class count for a mode label. |
+| `matches_mode(connections, mode)` | Whether the 58-entry connection sequence belongs to the mode family. |
+| `spec(bits[, style])` | Canonical visual `dict`. |
+| `pixels(bits[, style])` | Exact raster `dict`. |
+| `smooth_blobs(connections)` | Ordered tuple of inclusive cell-coordinate tuples. |
 
-Call `clear_cache()` after deleting renderer parents.
+The core exports `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`,
+`PIXEL_HEIGHT`, `EDGES`, `STYLES`, and `MODES`; styles `STANDARD`,
+`HIGH_CONTRAST`, `MONOCHROME`, `BLACK_AND_WHITE`; and mode labels
+`LEFT_RIGHT`, `TOP_BOTTOM`, `HALF_TURN`, and `DIAGONAL_SLASH`. `bits` must be
+an `int` in $[0,2^{32}-1]$; invalid styles and masks raise `ValueError`.
 
-### 5.2 Other CPython targets
+## 5. Test conformance
 
-For CPython applications, suitable optional renderer targets include Pillow for
-image output, Tkinter for a standard-library desktop canvas, and pygame for an
-interactive display. None is required or bundled, so the core stays
-MicroPython-compatible.
-
-## 6. Test conformance
-
-Run the dependency-free test harness under CPython or MicroPython:
+Run the dependency-free harness under CPython or MicroPython:
 
 ```bash
 cd micropython
 python3 test_bitsquiggle32.py
 ```
 
-Repository CI runs this harness alongside checks for the shared fixture. The
-complete conformance requirements are in the
-[conformance](../spec/07-conformance.md).
+Repository CI runs this harness alongside shared-fixture checks. See
+[conformance](../spec/07-conformance.md) for the common requirements.
 
-## 7. Package / release notes
+## 6. Package / release notes
 
 `pyproject.toml` packages `bitsquiggle32.py` for CPython while retaining the
-same standalone source file for MicroPython vendoring. The distribution has no
-runtime dependencies.
+same standalone source for MicroPython vendoring. Renderer modules are optional
+vendored source so the core remains dependency-free and MicroPython-compatible.
 
-## 8. Limitations and compatibility
+## 7. Limitations and compatibility
 
-Native MicroPython targets vary in available RAM; reduce long sampled test
-loops on constrained devices if needed. See the
-[shared input contract](../spec/01-overview.md) for value semantics.
+Native MicroPython targets vary in available RAM; reduce long sampled test loops
+on constrained devices if needed. See the [shared input contract](../spec/01-overview.md)
+for value semantics.
 
 | Surface | Verified target | Notes |
 | --- | --- | --- |
 | CPython package | Python 3.8+ | Declared in package metadata; CI uses Python 3.12. |
 | CPython conformance | Python 3.12 in CI | Consumes every shared fixture vector. |
-| MicroPython core | Targets with `math` support | Vendor the single core file; no device-specific CI target is claimed. |
-| LVGL renderer | LVGL 9 MicroPython targets | Optional vendored module; validate exact and smooth output on the target display. |
-| MicroPython testing | Target-dependent | Run the property harness on-device as resources permit; full fixture parity runs on the host. |
+| MicroPython core | Targets with `math` support | Vendor the single core file. |
+| LVGL renderer | LVGL 9 MicroPython targets | Validate exact and smooth output on the target display. |
+| Framebuffer renderer | `fill_rect` targets | Validate target color mapping and exact output. |
 
-## 9. License
+## 8. License
 
 Grug 2-Clause License. See the repository-level [LICENSE](../LICENSE).

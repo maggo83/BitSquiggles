@@ -5,147 +5,147 @@
 
 ## 1. Status and scope
 
-This guide explains how to use the dependency-free ESM core, its optional Canvas
-renderer, and the live playground. Project purpose, safety boundaries, and
-release status live in the [project overview](../README.md); the shared encoding
-contract lives in the [specification](../SPEC.md).
+This guide covers the dependency-free ESM core and the bundled Canvas 2D
+renderer. **Import the Canvas renderer entry point for a browser visual**: it
+re-exports the complete core API and is the normal application entry point.
+Importing only the core is an option for consumers that deliberately provide a
+different renderer or do not render.
+
+Project purpose, safety boundaries, and release status live in the
+[project overview](../README.md). Shared behavior is defined by the
+[specification](../SPEC.md).
 
 ## 2. Include / install
 
-After publication, install the package with:
+### 2.1 Renderer-first integration (primary)
+
+After publication, install the package:
 
 ```bash
 npm install bitsquiggles
 ```
 
-For local integration before publication, install this directory directly:
+For a local checkout before publication:
 
 ```bash
 npm install /path/to/BitSquiggles/web
 ```
 
-The package has no runtime dependencies or build step. TypeScript declarations
-are optional editor support; JavaScript is the executable source of truth.
-The live playground is available at
-[https://maggo83.github.io/BitSquiggles/](https://maggo83.github.io/BitSquiggles/).
-
-## 3. Create a BitSquiggle
+Import the Canvas entry point, not the bare core. It provides `spec()`,
+`pixels()`, constants, helpers, `renderRaster()`, and `renderSmooth()` from one
+module:
 
 ```js
-import { formatHex, parseHex, pixels, spec } from "bitsquiggles";
-
-const input = parseHex("12345678");
-const visual = spec(input);
-const raster = pixels(input);
-console.log(formatHex(visual.mixed), visual.actualMode);
+import { pixels, renderRaster, renderSmooth, spec } from "bitsquiggles/renderer-canvas";
 ```
 
-Both `spec()` and `pixels()` accept the same signed 32-bit bit pattern and
-optional style. The API return values, styles, constants, and hexadecimal
-handling are documented by this guide; shared semantics are in the
-[core API contract](../spec/06-api.md).
+The package has no runtime dependencies or build step. TypeScript declarations
+are included. The live playground is available at
+[https://maggo83.github.io/BitSquiggles/](https://maggo83.github.io/BitSquiggles/).
 
-`STYLES` contains `standard`, `high-contrast`, `monochrome`, and
-`black-and-white`. Black and white produces only `#000000` and `#ffffff` after
-the parity-derived polarity swap. Its complete bordered bitmap is unique by
-itself; color and intermediate luminance are optional comparison aids.
+### 2.2 Core-only option
 
-### 3.1 Core API
+Use the bare `bitsquiggles` entry point only when an application does not draw
+or supplies a different renderer. It exposes no Canvas APIs:
 
-The core exports `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`,
-`PIXEL_HEIGHT`, `EDGES`, `STYLES`, and `MODES`.
+```js
+import { pixels, spec } from "bitsquiggles";
+```
+
+## 3. Render a BitSquiggle
+
+A renderer consumes canonical output: call `pixels()` before `renderRaster()`,
+or `spec()` before `renderSmooth()`. Do not pass an identity input directly to
+a renderer. The renderer entry point is also the core façade.
+
+### 3.1 Canvas 2D renderer
+
+The Canvas renderer supports both required drawing modes:
+
+```js
+import {
+  BLACK_AND_WHITE,
+  HIGH_CONTRAST,
+  pixels,
+  renderRaster,
+  renderSmooth,
+  spec,
+} from "bitsquiggles/renderer-canvas";
+
+const input = 0x12345678;
+
+const raster = pixels(input, BLACK_AND_WHITE);
+renderRaster(rasterCanvas, raster);
+
+const visual = spec(input, HIGH_CONTRAST);
+renderSmooth(smoothCanvas, visual);
+```
+
+`renderRaster()` paints the exact $16\times22$ grid at native Canvas pixels.
+`renderSmooth()` renders the canonical smooth-blob presentation. The latter is
+presentation only; the [exact raster](../spec/04-exact-raster.md) remains the
+lossless baseline.
+
+## 4. Exposed API
+
+Shared API semantics are defined in the [API contract](../spec/06-api.md).
+`STYLES` includes `standard`, `high-contrast`, `monochrome`, and
+`black-and-white`. The [presentation chapter](../spec/03-presentation.md)
+owns their shared color and polarity rules.
+
+### 4.1 Renderer entry point
+
+| Export from `bitsquiggles/renderer-canvas` | Use |
+| --- | --- |
+| All core exports | Derive specs and grids through the selected renderer import. |
+| `renderRaster(canvas, grid)` | Draw an exact Canvas raster from `pixels()` output. |
+| `renderSmooth(canvas, visual)` | Draw a smooth Canvas presentation from `spec()` output. |
+
+### 4.2 Core API
 
 | Function | JavaScript result |
 | --- | --- |
 | `mix32(input)` | Mixed signed 32-bit bit pattern. |
 | `freeConnectionCount(mode)` | Independent class count for a mode label. |
-| `matchesMode(connections, mode)` | Whether a connection mask belongs to a mode family. |
+| `matchesMode(connections, mode)` | Whether a connection mask belongs to the mode family. |
 | `spec(input[, style])` | Canonical visual object. |
 | `pixels(input[, style])` | Exact raster object. |
 | `smoothBlobs(connections)` | Ordered `{ topRow, leftColumn, bottomRow, rightColumn }` objects. |
 
-Inputs use JavaScript signed 32-bit bit patterns; use `parseHex()` and
-`formatHex()` at unsigned hexadecimal boundaries. `smoothBlobs()` accepts a
-binary, 58-entry `Uint8Array` and throws `RangeError` for invalid masks. Blob
-coordinates are inclusive cell coordinates, and output contains at most 82
-objects. TypeScript declarations include `SmoothBlob`.
+The core also exports `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`,
+`PIXEL_HEIGHT`, `EDGES`, `STYLES`, and `MODES`. Inputs use JavaScript signed
+32-bit bit patterns; use `parseHex()` and `formatHex()` at unsigned hexadecimal
+boundaries. `smoothBlobs()` accepts a binary 58-entry `Uint8Array` and throws
+`RangeError` for invalid masks.
 
-## 4. Render the exact raster
-
-The `pixels()` result is the normative $16\times22$ binary raster. Render its
-row-major values as whole target pixels or nearest-neighbor integer-scaled
-squares; `0` is background and `1` is foreground. See the complete
-[exact-raster rules](../spec/04-exact-raster.md).
-
-### 4.1 Black-and-white display style
-
-`black-and-white` is the shared two-state display style. Its lightness,
-polarity, and color rules are defined in [presentation](../spec/03-presentation.md);
-its unchanged geometry and required background border are defined by the
-[exact raster](../spec/04-exact-raster.md).
-
-### 4.2 Canvas 2D renderer
-
-```js
-import { pixels, renderRaster } from "bitsquiggles/renderer-canvas";
-
-const raster = pixels(input, "black-and-white");
-renderRaster(rasterCanvas, raster);
-```
-
-## 5. Optional smooth rendering
-
-Smooth rendering is presentation only: it must preserve selected and
-unselected connections without changing the exact-raster identity. Follow the
-[smooth-output constraints](../spec/05-smooth-output.md) and the renderer
-naming convention in the [core API contract](../spec/06-api.md).
-
-### 5.1 Canvas 2D renderer
-
-Import the Canvas entry point when a browser application needs the bundled
-smooth presentation:
-
-```js
-import { HIGH_CONTRAST, renderSmooth, spec } from "bitsquiggles/renderer-canvas";
-
-const visual = spec(input, HIGH_CONTRAST);
-renderSmooth(canvas, visual);
-```
-
-The bundled renderer calls `smoothBlobs(visual.connections)` and paints each
-canonical rounded rectangle using the geometry in the shared specification.
-
-`playground.js` is the live-demo application. It owns the form, URL state, and
-page updates, then delegates drawing to the Canvas renderer.
-
-## 6. Test conformance
+## 5. Test conformance
 
 ```bash
 npm test
 ```
 
-The test suite reads the versioned Java-generated conformance fixture and
-checks every shared vector. The complete conformance requirements are in the
-[conformance](../spec/07-conformance.md).
+The suite reads the Java-generated versioned fixture and checks every shared
+vector. See [conformance](../spec/07-conformance.md) for shared requirements.
 
-## 7. Package / release notes
+## 6. Package / release notes
 
-The `bitsquiggles` package exposes the core at `bitsquiggles` and the Canvas
-entry point at `bitsquiggles/renderer-canvas`. Both include TypeScript
-declarations. Use the core alone when a different graphics toolkit is preferred.
+The package exposes the core at `bitsquiggles` and the renderer façade at
+`bitsquiggles/renderer-canvas`; both include TypeScript declarations. Use the
+renderer façade for Canvas applications. Use the core-only entry point only for
+a non-Canvas or non-rendering integration.
 
-## 8. Limitations and compatibility
+## 7. Limitations and compatibility
 
 The core is standard ESM; consumers without ESM support need a target-specific
-integration layer. See the [shared input contract](../spec/01-overview.md)
-for 32-bit value semantics.
+integration layer. See the [shared input contract](../spec/01-overview.md) for
+32-bit value semantics.
 
 | Surface | Verified target | Notes |
 | --- | --- | --- |
 | ESM core and package tests | Node.js 22 in CI | Uses native ESM and checks every shared fixture vector. |
-| Canvas renderer | Modern browser with Canvas 2D and `roundRect()` | Optional `renderer-canvas` subpath. |
-| Playground | Modern browser with ESM, Canvas 2D, Web Crypto, and Clipboard APIs | Node smoke tests cover DOM wiring with fakes; browser compatibility is not otherwise version-pinned. |
+| Canvas renderer | Modern browser with Canvas 2D and `roundRect()` | Renderer-first subpath. |
+| Playground | Modern browser with ESM, Canvas 2D, Web Crypto, and Clipboard APIs | Node smoke tests cover DOM wiring with fakes. |
 
-## 9. License
+## 8. License
 
 Grug 2-Clause License. See [LICENSE](LICENSE).

@@ -5,19 +5,30 @@
 
 ## 1. Status and scope
 
-This is a dependency-free C99 core implementation. It provides the canonical
-`spec()` and `pixels()` operations as `bitsquiggle32_spec()` and
-`bitsquiggle32_pixels()`. The core performs no drawing and depends only on the
-C standard library plus the standard math library for color conversion.
+This is a dependency-free C99 core. It provides canonical specifications,
+exact grids, and smooth blobs, but **does not currently bundle a renderer
+façade**. Renderer-first integration is therefore the intended target
+architecture but is not yet available in this port. Use the core-only option
+only until a target-specific renderer is supplied.
 
-Project purpose, safety boundaries, and release status live in the
-[project overview](../README.md); the shared encoding contract lives in the
-[specification](../SPEC.md).
+The core depends only on the C standard library and the standard math library
+for color conversion. Project purpose, safety boundaries, and release status
+live in the [project overview](../README.md); shared behavior is in
+[SPEC.md](../SPEC.md).
 
 ## 2. Include / install
 
-Copy [bitsquiggle32.h](bitsquiggle32.h) and [bitsquiggle32.c](bitsquiggle32.c)
-into a C99 project, then link with `-lm`:
+### 2.1 Renderer-first integration (primary)
+
+No C renderer is bundled yet. A target-specific C renderer should expose the
+complete core surface and at least one rendering operation as required by the
+[renderer contract](../spec/06-api.md#renderer-contract). When available,
+include that renderer entry point rather than calling this core directly.
+
+### 2.2 Core-only option
+
+Until a renderer is available, copy [bitsquiggle32.h](bitsquiggle32.h) and
+[bitsquiggle32.c](bitsquiggle32.c) into a C99 project, then link with `-lm`:
 
 ```sh
 cc -std=c99 -Wall -Wextra -Werror -pedantic bitsquiggle32.c app.c -lm -o app
@@ -26,34 +37,51 @@ cc -std=c99 -Wall -Wextra -Werror -pedantic bitsquiggle32.c app.c -lm -o app
 No allocator, operating-system API, renderer, or third-party library is
 required by the core.
 
-## 3. Create a BitSquiggle
+## 3. Render a BitSquiggle
 
-C uses `uint32_t` for the full unsigned input domain. Supply a caller-owned
-`Bitsquiggle32Spec`; the function returns zero on success.
+A selected renderer should consume output from `bitsquiggle32_pixels()` for
+exact raster drawing or `bitsquiggle32_spec()` for smooth drawing. It must not
+accept an identity input directly.
+
+### 3.1 Renderer availability
+
+No renderer is bundled for C99. Add a separately named framework-specific
+renderer that follows the [renderer contract](../spec/06-api.md#renderer-contract).
+This port cannot yet provide a renderer-first code example.
+
+### 3.2 Core-only output
+
+Core-only integrations can produce exact raster output for a target-owned
+drawing layer:
 
 ```c
 #include "bitsquiggle32.h"
 
-Bitsquiggle32Spec visual;
-if (bitsquiggle32_spec(UINT32_C(0x12345678), BITSQUIGGLE32_STANDARD, &visual) != 0) {
-    /* Invalid style or output pointer. */
+Bitsquiggle32PixelGrid raster;
+if (bitsquiggle32_pixels(UINT32_C(0x12345678),
+        BITSQUIGGLE32_BLACK_AND_WHITE, &raster) == 0) {
+    /* Render raster.pixels using raster.background and raster.foreground. */
 }
-
-printf("%s\n", visual.foreground.hex);
 ```
 
-`Bitsquiggle32Spec` includes the mixed value, connection mask, active cells,
-colors, requested style, preferred and actual modes, fallback, luminance index,
-and polarity metadata. Use `bitsquiggle32_mode_label()` to obtain `A|`, `A-`,
-`A+`, or `A/` for a mode enum.
+The target layer must draw every source pixel as a whole pixel or integer-scaled
+square according to the [exact raster](../spec/04-exact-raster.md). For smooth
+output, obtain `Bitsquiggle32Spec` and pass `visual.connections` to
+`bitsquiggle32_smooth_blobs()`.
 
-Styles are `BITSQUIGGLE32_STANDARD`, `BITSQUIGGLE32_HIGH_CONTRAST`,
-`BITSQUIGGLE32_MONOCHROME`, and `BITSQUIGGLE32_BLACK_AND_WHITE`. The
-black-and-white style emits only `#000000` and `#ffffff` after the
-parity-derived polarity swap. Its complete bordered bitmap is unique by itself;
-color and intermediate luminance are optional comparison aids.
+## 4. Exposed API
 
-### 3.1 Core API
+Shared API semantics are defined in the [API contract](../spec/06-api.md). The
+[presentation chapter](../spec/03-presentation.md) owns shared style, color,
+and polarity rules.
+
+### 4.1 Renderer entry point
+
+| Renderer entry point | Status | Rendering operations |
+| --- | --- | --- |
+| None bundled | Not available | A future target-specific façade must expose all core operations and at least `renderRaster()` or `renderSmooth()`. |
+
+### 4.2 Core API
 
 | Function | Result |
 | --- | --- |
@@ -66,36 +94,11 @@ color and intermediate luminance are optional comparison aids.
 | `bitsquiggle32_smooth_blobs(connections, output)` | Returns ordered canonical smooth blobs. |
 
 `bitsquiggle32_smooth_blobs()` consumes a binary 58-entry connection array and
-writes `Bitsquiggle32SmoothBlob` values with inclusive cell coordinates. Its
-caller-owned output array must contain `BITSQUIGGLE32_MAX_SMOOTH_BLOBS` entries
-(82). The return value is the blob count, or `-1` for null pointers or a
-non-binary connection array. No allocation is performed.
+writes inclusive-coordinate `Bitsquiggle32SmoothBlob` values. Its caller-owned
+array must contain `BITSQUIGGLE32_MAX_SMOOTH_BLOBS` entries (82). It returns the
+blob count, or `-1` for invalid arguments; no allocation is performed.
 
-## 4. Render the exact raster
-
-`bitsquiggle32_pixels()` fills a caller-owned `Bitsquiggle32PixelGrid`. It is
-the normative $16\times22$ binary raster: render its row-major `pixels` values
-as whole target pixels or integer-scaled squares; `0` is background and `1` is
-foreground. See the complete [exact-raster rules](../spec/04-exact-raster.md).
-
-```c
-Bitsquiggle32PixelGrid raster;
-bitsquiggle32_pixels(value, BITSQUIGGLE32_STANDARD, &raster);
-```
-
-## 5. Optional smooth rendering
-
-Smooth rendering is presentation only: it must preserve selected and
-unselected connections without changing the exact-raster identity. Follow the
-[smooth-output constraints](../spec/05-smooth-output.md) and the renderer
-naming convention in the [core API contract](../spec/06-api.md).
-
-This port bundles no renderer. Add a framework-specific adapter only when the
-target requires one. Use `bitsquiggle32_smooth_blobs()` as the normal path:
-draw each returned rectangle with the canonical geometry from the
-[smooth-blob specification](../spec/05-smooth-output.md#canonical-smooth-blobs).
-
-## 6. Test conformance
+## 5. Test conformance
 
 From this directory, run:
 
@@ -103,27 +106,28 @@ From this directory, run:
 make test
 ```
 
-The harness compiles with strict C99 warnings, tests edge ordering, family
-capacity, the normative golden vector, style-independent geometry, lossless
-raster bridges, and every vector/style in `fixtures/v1.json`.
+The harness compiles with strict C99 warnings and checks edge ordering, family
+capacity, the golden vector, style-independent geometry, lossless raster
+bridges, and every vector/style in `fixtures/v1.json`. See
+[conformance](../spec/07-conformance.md) for common requirements.
 
-## 7. Package / release notes
+## 6. Package / release notes
 
-The C99 port is source-only. It follows the project’s shared version policy;
-see [RELEASING.md](../RELEASING.md). It is not yet published as a package or
-archive.
+The C99 port is source-only. It follows the shared version policy in
+[RELEASING.md](../RELEASING.md) and is not yet published as a package or archive.
 
-## 8. Limitations and compatibility
+## 7. Limitations and compatibility
+
+The API uses caller-provided output structs. Every `uint32_t` value is valid;
+only style and output-pointer validity can fail. See the
+[shared input contract](../spec/01-overview.md).
 
 | Surface | Verified target | Notes |
 | --- | --- | --- |
 | Core | ISO C99 compiler with C math library | No allocation or non-standard dependency. |
-| Test harness | C99 compiler with `make` | CI builds with strict warnings and runs the shared fixture. |
-| Renderer | None bundled | Add only a separately named framework adapter. |
+| Test harness | C99 compiler with `make` | CI uses strict warnings and the shared fixture. |
+| Renderer | None bundled | Add a separately named target-specific façade. |
 
-The API uses caller-provided output structs. All input values represent the
-full `uint32_t` domain; only style and output-pointer validity can fail.
-
-## 9. License
+## 8. License
 
 Grug 2-Clause License. See the repository-level [LICENSE](../LICENSE).
