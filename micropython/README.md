@@ -6,10 +6,10 @@
 ## 1. Status and scope
 
 This guide covers the dependency-free CPython and MicroPython-compatible core,
-the LVGL renderer, and the generic fill-rectangle framebuffer renderer. **Use a
-selected renderer module as the normal application import**: it re-exports the
-complete core API and adds its rendering operations. Import the core alone only
-for a non-rendering or separately rendered integration.
+the PyQt6 and LVGL renderers, and the generic fill-rectangle framebuffer
+renderer. **Use a selected renderer module as the normal application import**:
+it re-exports the complete core API and adds its rendering operations. Import
+the core alone only for a non-rendering or separately rendered integration.
 
 Project purpose, safety boundaries, and release status live in the
 [project overview](../README.md); shared behavior is in [SPEC.md](../SPEC.md).
@@ -29,14 +29,20 @@ Import the selected renderer in application code. It provides the core façade
 and its render operation. The LVGL module imports `lvgl` only when that renderer
 is selected.
 
-For CPython, install the core from a checkout, then vendor the selected renderer
-source from this directory alongside it:
+For CPython, install the core from a checkout:
 
 ```bash
 python3 -m pip install .
 ```
 
-No third-party runtime dependency is installed by the core.
+No third-party runtime dependency is installed by the core. The generic
+framebuffer and LVGL renderers can be vendored from this directory when needed.
+
+Install the optional PyQt6 renderer and its framework dependency with:
+
+```bash
+python3 -m pip install '.[pyqt6]'
+```
 
 ### 2.2 Core-only option
 
@@ -93,6 +99,24 @@ It paints each source pixel as a whole target pixel or integer-scaled square.
 `color_mapper` adapts canonical `#rrggbb` colors to one-bit, indexed, RGB565,
 or other native values. Smooth output is not provided by this renderer.
 
+### 3.3 PyQt6 renderer
+
+The PyQt6 renderer supports exact raster and smooth output as `QPixmap` values:
+
+```python
+import bitsquiggles_renderer_pyqt6 as bitsquiggles
+
+visual = bitsquiggles.spec(0x12345678, bitsquiggles.HIGH_CONTRAST)
+smooth_pixmap = bitsquiggles.render_smooth(visual, scale=4)
+
+grid = bitsquiggles.pixels(0x12345678, bitsquiggles.BLACK_AND_WHITE)
+raster_pixmap = bitsquiggles.render_raster(grid, scale=2)
+```
+
+`render_smooth()` draws the canonical blob union with antialiasing.
+`render_raster()` preserves every exact source pixel as an integer-scaled
+rectangle without antialiasing.
+
 ## 4. Exposed API
 
 Shared API semantics are defined in the [API contract](../spec/06-api.md). The
@@ -105,6 +129,7 @@ polarity rules.
 | --- | --- | --- |
 | `bitsquiggles_renderer_lvgl` | Complete core API | `render_raster(parent, grid[, scale])`, `render_smooth(parent, visual[, scale, bordered])`, `clear_cache()` |
 | `bitsquiggle32_renderer_framebuffer` | Complete core API | `render_raster(target, grid[, x, y, scale, color_mapper])` |
+| `bitsquiggles_renderer_pyqt6` | Complete core API | `render_raster(grid[, scale])`, `render_smooth(visual[, scale])` |
 
 ### 4.2 Core API
 
@@ -151,6 +176,7 @@ for value semantics.
 | --- | --- | --- |
 | CPython package | Python 3.8+ | Declared in package metadata; CI uses Python 3.12. |
 | CPython conformance | Python 3.12 in CI | Consumes every shared fixture vector. |
+| PyQt6 renderer | PyQt6 6.5+ | Optional CPython dependency; exact and smooth `QPixmap` output. |
 | MicroPython core | Targets with `math` support | Vendor the single core file. |
 | LVGL renderer | LVGL 9 MicroPython targets | Validate exact and smooth output on the target display. |
 | Framebuffer renderer | `fill_rect` targets | Validate target color mapping and exact output. |

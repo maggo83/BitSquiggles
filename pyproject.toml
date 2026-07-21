@@ -21,6 +21,9 @@ classifiers = [
 Homepage = "https://github.com/maggo83/BitSquiggles"
 Repository = "https://github.com/maggo83/BitSquiggles"
 
+[project.optional-dependencies]
+pyqt6 = ["PyQt6>=6.5"]
+
 [tool.setuptools]
 package-dir = { "" = "micropython" }
-py-modules = ["bitsquiggle32"]
+py-modules = ["bitsquiggle32", "bitsquiggles_renderer_pyqt6"]

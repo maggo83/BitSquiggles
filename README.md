@@ -188,6 +188,7 @@ Current state:
   proof, while tests sample the implementation over large input sets;
 - the Java implementation includes an interactive Swing demo;
 - optional Swing/Java2D and JavaFX desktop renderers are available;
+- the Python port includes an optional PyQt6 exact-raster and smooth renderer;
 - the MicroPython port includes optional LVGL exact-raster and smooth renderers;
 - no independent security, cryptographic, accessibility, or usability review
   has been completed;
@@ -278,6 +279,7 @@ c/
   README.md                 C99 integration guide
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
+  bitsquiggles_renderer_pyqt6.py Optional PyQt6 exact-raster and smooth renderers
   bitsquiggles_renderer_lvgl.py Optional LVGL exact-raster and smooth renderers
   test_bitsquiggle32.py    Python conformance and property tests
   README.md                 Python and MicroPython integration guide

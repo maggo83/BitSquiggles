@@ -45,5 +45,9 @@ jobs:
         run: npm test --prefix web
       - name: Run MicroPython-compatible tests under CPython
         run: python3 micropython/test_bitsquiggle32.py
+      - name: Run optional PyQt6 renderer tests
+        run: |
+          python3 -m pip install '.[pyqt6]'
+          QT_QPA_PLATFORM=offscreen python3 micropython/test_bitsquiggles_renderer_pyqt6.py
       - name: Build and run C99 conformance tests
         run: make -C c test
