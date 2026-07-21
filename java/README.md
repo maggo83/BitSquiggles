@@ -72,6 +72,9 @@ Java exposes these static operations on `BitSquiggle32`:
 `VisSpec`, `PixelGrid`, and `SmoothBlob`. Java accepts every `int` bit pattern
 as an unsigned 32-bit input.
 
+For an application that renders, call these operations through its selected
+renderer entry point instead of importing the core class separately.
+
 ## 4. Render the exact raster
 
 The `pixels()` result is the normative $16\times22$ binary raster. Render its
@@ -96,17 +99,19 @@ defined by the shared specification and included in the cross-port fixture.
 ### 4.2 Swing and Java2D renderer
 
 ```java
-import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
+import static bitsquiggles.renderer.swing.BitSquiggle32RendererSwing.*;
 
-BitSquiggle32RendererSwing.renderRaster(graphics, raster, pixelSize);
+var raster = pixels(bits, BLACK_AND_WHITE);
+renderRaster(graphics, raster, pixelSize);
 ```
 
 ### 4.3 JavaFX renderer
 
 ```java
-import bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX;
+import static bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX.*;
 
-BitSquiggle32RendererJavaFX.renderRaster(graphics, raster, pixelSize);
+var raster = pixels(bits, BLACK_AND_WHITE);
+renderRaster(graphics, raster, pixelSize);
 ```
 
 ## 5. Optional smooth rendering
@@ -121,17 +126,19 @@ foreground primitives while preserving the canonical smooth union.
 ### 5.1 Swing and Java2D renderer
 
 ```java
-import bitsquiggles.renderer.swing.BitSquiggle32RendererSwing;
+import static bitsquiggles.renderer.swing.BitSquiggle32RendererSwing.*;
 
-BitSquiggle32RendererSwing.renderSmooth(graphics, visual, width, height);
+var visual = spec(bits, HIGH_CONTRAST);
+renderSmooth(graphics, visual, width, height);
 ```
 
 ### 5.2 JavaFX renderer
 
 ```java
-import bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX;
+import static bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX.*;
 
-BitSquiggle32RendererJavaFX.renderSmooth(graphics, visual, width, height);
+var visual = spec(bits, HIGH_CONTRAST);
+renderSmooth(graphics, visual, width, height);
 ```
 
 The renderers depend on their respective desktop toolkit but the

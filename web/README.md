@@ -94,8 +94,9 @@ defined by the shared specification and included in the cross-port fixture.
 ### 4.2 Canvas 2D renderer
 
 ```js
-import { renderRaster } from "bitsquiggles/renderer-canvas";
+import { pixels, renderRaster } from "bitsquiggles/renderer-canvas";
 
+const raster = pixels(input, "black-and-white");
 renderRaster(rasterCanvas, raster);
 ```
 
@@ -108,22 +109,21 @@ naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
 
 ### 5.1 Canvas 2D renderer
 
-The optional Canvas renderer is separate from both the core and playground
-application. Import it when a browser application needs the bundled smooth
-presentation:
+Import the Canvas entry point when a browser application needs the bundled
+smooth presentation:
 
 ```js
-import { renderSmooth } from "bitsquiggles/renderer-canvas";
+import { HIGH_CONTRAST, renderSmooth, spec } from "bitsquiggles/renderer-canvas";
 
+const visual = spec(input, HIGH_CONTRAST);
 renderSmooth(canvas, visual);
 ```
 
 The bundled renderer calls `smoothBlobs(visual.connections)` and paints each
 canonical rounded rectangle using the geometry in the shared specification.
 
-`playground.js` is only the live-demo application: it owns the form, URL state,
-and page updates, then delegates drawing to the Canvas renderer. `PIXEL_WIDTH`
-and `PIXEL_HEIGHT` are also exported by this optional renderer.
+`playground.js` is the live-demo application. It owns the form, URL state, and
+page updates, then delegates drawing to the Canvas renderer.
 
 ## 6. Test conformance
 
@@ -137,9 +137,9 @@ checks every shared vector. The complete conformance requirements are in the
 
 ## 7. Package / release notes
 
-The `bitsquiggles` package exposes the core at `bitsquiggles` and the optional
-Canvas renderer at `bitsquiggles/renderer-canvas`. Both include TypeScript declarations.
-Use the core alone when a different graphics toolkit is preferred.
+The `bitsquiggles` package exposes the core at `bitsquiggles` and the Canvas
+entry point at `bitsquiggles/renderer-canvas`. Both include TypeScript
+declarations. Use the core alone when a different graphics toolkit is preferred.
 
 ## 8. Limitations and compatibility
 

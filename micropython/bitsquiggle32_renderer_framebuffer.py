@@ -1,11 +1,10 @@
 """Optional exact-raster renderer for fill-rectangle framebuffer targets.
 
-This module re-exports the complete public ``bitsquiggle32`` core API together
-with ``render_raster``. ``render_raster`` consumes the canonical grid returned
-by ``pixels``; it does not accept or derive an identity input. Targets need
-only expose ``fill_rect(x, y, width, height, color)``. Supply a ``color_mapper``
-when the target does not accept the core's ``#rrggbb`` colors directly, such as
-for a one-bit or RGB565 framebuffer.
+Use this module for a framebuffer target: call ``pixels`` to create the
+canonical grid and ``render_raster`` to paint it. Targets need only expose
+``fill_rect(x, y, width, height, color)``. Supply a ``color_mapper`` when the
+target does not accept the core's ``#rrggbb`` colors directly, such as for a
+one-bit or RGB565 framebuffer.
 
 Grug 2-Clause License: do what want; not sue grug.
 """

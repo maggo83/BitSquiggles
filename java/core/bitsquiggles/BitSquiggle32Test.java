@@ -29,6 +29,7 @@ public final class BitSquiggle32Test {
         testGoldenVector();
         testDemoHexParsing();
         testSmoothBlobReferenceImplementation();
+        testSwingRendererFacade();
         testSwingRenderer();
         System.out.println("BitSquiggles Java tests passed (" + checks + " checks)");
     }
@@ -397,6 +398,47 @@ public final class BitSquiggle32Test {
         }
         check(rasterImage.getRGB(0, 0) != 0, "Swing renderer paints exact raster background");
     }
+
+        private static void testSwingRendererFacade() {
+        int input = 0x89ABCDEF;
+        check(BitSquiggle32RendererSwing.ROWS == BitSquiggle32.ROWS,
+            "Swing facade rows");
+        check(BitSquiggle32RendererSwing.COLUMNS == BitSquiggle32.COLUMNS,
+            "Swing facade columns");
+        check(BitSquiggle32RendererSwing.EDGE_COUNT == BitSquiggle32.EDGE_COUNT,
+            "Swing facade edge count");
+        check(BitSquiggle32RendererSwing.PIXEL_WIDTH == BitSquiggle32.PIXEL_WIDTH,
+            "Swing facade pixel width");
+        check(BitSquiggle32RendererSwing.PIXEL_HEIGHT == BitSquiggle32.PIXEL_HEIGHT,
+            "Swing facade pixel height");
+        check(BitSquiggle32RendererSwing.BLACK_AND_WHITE == BitSquiggle32.Style.BLACK_AND_WHITE,
+            "Swing facade style");
+        check(BitSquiggle32RendererSwing.DIAGONAL_SLASH == BitSquiggle32.Mode.DIAGONAL_SLASH,
+            "Swing facade mode");
+        check(BitSquiggle32RendererSwing.mix32(input) == BitSquiggle32.mix32(input),
+            "Swing facade mixer");
+        check(Arrays.equals(BitSquiggle32RendererSwing.edges(), BitSquiggle32.edges()),
+            "Swing facade edges");
+        check(BitSquiggle32RendererSwing.freeConnectionCount(
+            BitSquiggle32RendererSwing.TOP_BOTTOM)
+            == BitSquiggle32.freeConnectionCount(BitSquiggle32.Mode.TOP_BOTTOM),
+            "Swing facade free connection count");
+        BitSquiggle32.VisSpec visual = BitSquiggle32RendererSwing.spec(
+            input, BitSquiggle32RendererSwing.BLACK_AND_WHITE);
+        BitSquiggle32.PixelGrid grid = BitSquiggle32RendererSwing.pixels(
+            input, BitSquiggle32RendererSwing.BLACK_AND_WHITE);
+        check(Arrays.equals(visual.connections(), BitSquiggle32.spec(
+            input, BitSquiggle32.Style.BLACK_AND_WHITE).connections()),
+            "Swing facade spec");
+        check(Arrays.equals(grid.pixels(), BitSquiggle32.pixels(
+            input, BitSquiggle32.Style.BLACK_AND_WHITE).pixels()),
+            "Swing facade pixels");
+        check(BitSquiggle32RendererSwing.matchesMode(
+            visual.connections(), visual.actualMode()), "Swing facade mode match");
+        check(Arrays.equals(BitSquiggle32RendererSwing.extractSmoothBlobs(
+            visual.connections()), BitSquiggle32.extractSmoothBlobs(visual.connections())),
+            "Swing facade smooth blobs");
+        }
 
     private static long pack(byte[] connections) {
         long result = 0;

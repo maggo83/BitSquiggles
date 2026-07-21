@@ -4,6 +4,8 @@ import {
   EDGE_COUNT, EDGES, formatHex, freeConnectionCount, matchesMode, mix32,
   MODES, parseHex, pixels, smoothBlobs, spec
 } from "./bitsquiggle32.js";
+import * as canvasRenderer from "./bitsquiggle32-renderer-canvas.js";
+import * as core from "./bitsquiggle32.js";
 
 const fixtures = JSON.parse(await readFile(new URL("../fixtures/v1.json", import.meta.url), "utf8"));
 assert.equal(fixtures.schema, "bitsquiggles-conformance", "known fixture schema");
@@ -11,6 +13,11 @@ assert.equal(fixtures.version, 1, "known fixture version");
 assert.deepEqual(fixtures.dimensions, { rows: 7, columns: 5, edges: 58, pixelWidth: 16, pixelHeight: 22 }, "known dimensions");
 assert.equal(EDGES.length, 58, "canonical edge count");
 assert.equal(EDGE_COUNT, EDGES.length, "exported edge count");
+for (const [name, value] of Object.entries(core)) {
+  assert.equal(canvasRenderer[name], value, `Canvas renderer re-exports ${name}`);
+}
+assert.equal(typeof canvasRenderer.renderRaster, "function", "Canvas raster renderer export");
+assert.equal(typeof canvasRenderer.renderSmooth, "function", "Canvas smooth renderer export");
 
 for (const vector of fixtures.vectors) {
   const input = Number.parseInt(vector.input, 16) | 0;

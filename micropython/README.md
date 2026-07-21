@@ -12,17 +12,10 @@ the shared encoding contract lives in the [specification](../SPEC.md).
 
 ## 2. Include / install
 
-For MicroPython, copy `bitsquiggle32.py` to the device and import it directly.
-It uses only core language features plus `math`. Optional renderers are separate:
-vendor `bitsquiggle32_renderer_framebuffer.py` for `fill_rect` framebuffer
-targets, or `bitsquiggles_renderer_lvgl.py` for LVGL targets. The LVGL renderer
-imports `lvgl` only when it is used.
-
-Each optional renderer vendors and imports `bitsquiggle32.py`, then re-exports
-the complete public core API alongside its target drawing operations. An
-application that renders may therefore import only its selected renderer. The
-core file is still required in the target filesystem; this is a one-import
-application API, not a bundled-source format.
+For MicroPython, copy `bitsquiggle32.py` to the device. To render, also copy the
+selected renderer: `bitsquiggle32_renderer_framebuffer.py` for `fill_rect`
+framebuffers or `bitsquiggles_renderer_lvgl.py` for LVGL. Import the selected
+renderer in the application. The LVGL renderer imports `lvgl` only when used.
 
 For CPython, install the same module from a checkout:
 
@@ -93,7 +86,7 @@ defined by the shared specification and included in the cross-port fixture.
 ### 4.2 LVGL renderer
 
 The optional `bitsquiggles_renderer_lvgl.py` module renders the exact raster as
-a cached RGB565 image with integer scaling and re-exports the complete core API:
+a cached RGB565 image with integer scaling:
 
 ```python
 import bitsquiggles_renderer_lvgl as bitsquiggles
@@ -106,11 +99,11 @@ Call `clear_cache()` after deleting renderer parents.
 
 ### 4.3 Fill-rectangle framebuffer renderer
 
-The optional `bitsquiggle32_renderer_framebuffer.py` renderer exposes the
-complete core API plus the Python-conventional `render_raster()` operation. It
-consumes a `pixels()` grid, never a BitSquiggle input value, and writes each
-grid element as an exact whole target pixel or integer-scaled square. Its
-target must provide `fill_rect(x, y, width, height, color)`.
+The optional `bitsquiggle32_renderer_framebuffer.py` renderer provides the
+Python-conventional `render_raster()` operation. It consumes a `pixels()` grid,
+never a BitSquiggle input value, and writes each grid element as an exact whole
+target pixel or integer-scaled square. Its target must provide
+`fill_rect(x, y, width, height, color)`.
 
 ```python
 import bitsquiggle32_renderer_framebuffer as bitsquiggles
@@ -136,10 +129,9 @@ naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
 
 ### 5.1 LVGL renderer
 
-The optional `bitsquiggles_renderer_lvgl.py` module re-exports the core API and
-supports LVGL targets without adding an LVGL dependency to the core. Its
-rounded canvas presentation uses the core's canonical `smooth_blobs()` via
-`render_smooth()`:
+The optional `bitsquiggles_renderer_lvgl.py` module supports LVGL targets
+without adding an LVGL dependency to the core. Its rounded canvas presentation
+uses the core's canonical `smooth_blobs()` via `render_smooth()`:
 
 ```python
 import bitsquiggles_renderer_lvgl as bitsquiggles

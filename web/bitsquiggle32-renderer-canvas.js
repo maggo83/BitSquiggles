@@ -3,6 +3,8 @@
 
 import { PIXEL_HEIGHT, PIXEL_WIDTH, smoothBlobs } from "./bitsquiggle32.js";
 
+export * from "./bitsquiggle32.js";
+
 function roundedRect(context, x, y, width, height, radius) {
   context.beginPath();
   context.roundRect(x, y, width, height, radius);
@@ -36,5 +38,3 @@ export function renderRaster(canvas, grid) {
     if (pixel) context.fillRect(index % PIXEL_WIDTH, Math.floor(index / PIXEL_WIDTH), 1, 1);
   });
 }
-
-export { PIXEL_WIDTH, PIXEL_HEIGHT };

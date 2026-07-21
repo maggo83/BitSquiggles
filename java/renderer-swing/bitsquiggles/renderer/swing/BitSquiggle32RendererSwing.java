@@ -13,10 +13,62 @@ import java.awt.RenderingHints;
 import java.awt.geom.Area;
 import java.awt.geom.RoundRectangle2D;
 
-/** Optional Swing/Java2D renderer for a {@link BitSquiggle32.VisSpec}. */
+/** Swing/Java2D BitSquiggle32 entry point. */
 public final class BitSquiggle32RendererSwing {
 
     private BitSquiggle32RendererSwing() {}
+
+    public static final int ROWS = BitSquiggle32.ROWS;
+    public static final int COLUMNS = BitSquiggle32.COLUMNS;
+    public static final int EDGE_COUNT = BitSquiggle32.EDGE_COUNT;
+    public static final int PIXEL_WIDTH = BitSquiggle32.PIXEL_WIDTH;
+    public static final int PIXEL_HEIGHT = BitSquiggle32.PIXEL_HEIGHT;
+
+    public static final BitSquiggle32.Style STANDARD = BitSquiggle32.Style.STANDARD;
+    public static final BitSquiggle32.Style HIGH_CONTRAST = BitSquiggle32.Style.HIGH_CONTRAST;
+    public static final BitSquiggle32.Style MONOCHROME = BitSquiggle32.Style.MONOCHROME;
+    public static final BitSquiggle32.Style BLACK_AND_WHITE = BitSquiggle32.Style.BLACK_AND_WHITE;
+
+    public static final BitSquiggle32.Mode LEFT_RIGHT = BitSquiggle32.Mode.LEFT_RIGHT;
+    public static final BitSquiggle32.Mode TOP_BOTTOM = BitSquiggle32.Mode.TOP_BOTTOM;
+    public static final BitSquiggle32.Mode HALF_TURN = BitSquiggle32.Mode.HALF_TURN;
+    public static final BitSquiggle32.Mode DIAGONAL_SLASH = BitSquiggle32.Mode.DIAGONAL_SLASH;
+
+    public static BitSquiggle32.Edge[] edges() {
+        return BitSquiggle32.edges();
+    }
+
+    public static int freeConnectionCount(BitSquiggle32.Mode mode) {
+        return BitSquiggle32.freeConnectionCount(mode);
+    }
+
+    public static int mix32(int input) {
+        return BitSquiggle32.mix32(input);
+    }
+
+    public static boolean matchesMode(byte[] connections, BitSquiggle32.Mode mode) {
+        return BitSquiggle32.matchesMode(connections, mode);
+    }
+
+    public static BitSquiggle32.VisSpec spec(int input, BitSquiggle32.Style style) {
+        return BitSquiggle32.spec(input, style);
+    }
+
+    public static BitSquiggle32.VisSpec spec(int input) {
+        return BitSquiggle32.spec(input);
+    }
+
+    public static BitSquiggle32.PixelGrid pixels(int input, BitSquiggle32.Style style) {
+        return BitSquiggle32.pixels(input, style);
+    }
+
+    public static BitSquiggle32.PixelGrid pixels(int input) {
+        return BitSquiggle32.pixels(input);
+    }
+
+    public static BitSquiggle32.SmoothBlob[] extractSmoothBlobs(byte[] connections) {
+        return BitSquiggle32.extractSmoothBlobs(connections);
+    }
 
     /**
      * Paint a smooth presentation using the canonical 16×22 coordinate space.

@@ -1,12 +1,11 @@
 """Optional LVGL renderers for the dependency-free BitSquiggles core.
 
-This module re-exports the complete public ``bitsquiggle32`` core API together
-with its LVGL functions. ``render_raster`` preserves the exact binary grid
-through an integer-scaled RGB565 image. ``render_smooth`` draws the canonical
-smooth-blob decomposition as an antialiased rounded geometric union on an LVGL
-canvas.
+Use this module for an LVGL target. ``render_raster`` preserves the exact
+binary grid through an integer-scaled RGB565 image. ``render_smooth`` draws the
+canonical smooth-blob decomposition as an antialiased rounded geometric union
+on an LVGL canvas.
 
-The one-import façade still preserves the core/renderer boundary:
+Create canonical values before drawing:
 
     visual = spec(bits, HIGH_CONTRAST)
     raster = pixels(bits, HIGH_CONTRAST)
