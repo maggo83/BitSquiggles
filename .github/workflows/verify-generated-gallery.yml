@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: dart-lang/setup-dart@v1
       - name: Compile headless Java core module
         run: |
           mkdir -p out/core out/renderer-swing out/test
@@ -45,6 +46,12 @@ jobs:
         run: npm test --prefix web
       - name: Run MicroPython-compatible tests under CPython
         run: python3 micropython/test_bitsquiggle32.py
+      - name: Run Dart core tests
+        run: dart dart/test_bitsquiggle32.dart
+      - name: Install Qt runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1
       - name: Run optional PyQt6 renderer tests
         run: |
           python3 -m pip install '.[pyqt6]'
