@@ -18,6 +18,12 @@ vendor `bitsquiggle32_renderer_framebuffer.py` for `fill_rect` framebuffer
 targets, or `bitsquiggles_renderer_lvgl.py` for LVGL targets. The LVGL renderer
 imports `lvgl` only when it is used.
 
+Each optional renderer vendors and imports `bitsquiggle32.py`, then re-exports
+the complete public core API alongside its target drawing operations. An
+application that renders may therefore import only its selected renderer. The
+core file is still required in the target filesystem; this is a one-import
+application API, not a bundled-source format.
+
 For CPython, install the same module from a checkout:
 
 ```bash
@@ -87,14 +93,13 @@ defined by the shared specification and included in the cross-port fixture.
 ### 4.2 LVGL renderer
 
 The optional `bitsquiggles_renderer_lvgl.py` module renders the exact raster as
-a cached RGB565 image with integer scaling:
+a cached RGB565 image with integer scaling and re-exports the complete core API:
 
 ```python
-import bitsquiggle32
-import bitsquiggles_renderer_lvgl as lvgl_renderer
+import bitsquiggles_renderer_lvgl as bitsquiggles
 
-raster = bitsquiggle32.pixels(0x12345678, bitsquiggle32.HIGH_CONTRAST)
-lvgl_renderer.render_raster(parent, raster, scale=2)
+raster = bitsquiggles.pixels(0x12345678, bitsquiggles.HIGH_CONTRAST)
+bitsquiggles.render_raster(parent, raster, scale=2)
 ```
 
 Call `clear_cache()` after deleting renderer parents.
@@ -102,21 +107,20 @@ Call `clear_cache()` after deleting renderer parents.
 ### 4.3 Fill-rectangle framebuffer renderer
 
 The optional `bitsquiggle32_renderer_framebuffer.py` renderer exposes the
-Python-conventional `render_raster()` operation. It consumes a `pixels()` grid,
-never a BitSquiggle input value, and writes each grid element as an exact whole
-target pixel or integer-scaled square. Its target must provide
-`fill_rect(x, y, width, height, color)`.
+complete core API plus the Python-conventional `render_raster()` operation. It
+consumes a `pixels()` grid, never a BitSquiggle input value, and writes each
+grid element as an exact whole target pixel or integer-scaled square. Its
+target must provide `fill_rect(x, y, width, height, color)`.
 
 ```python
-import bitsquiggle32
-import bitsquiggle32_renderer_framebuffer as framebuffer_renderer
+import bitsquiggle32_renderer_framebuffer as bitsquiggles
 
 def map_color(color):
-	return 1 if color == "#ffffff" else 0
+    return 1 if color == "#ffffff" else 0
 
-raster = bitsquiggle32.pixels(0x12345678, bitsquiggle32.BLACK_AND_WHITE)
-framebuffer_renderer.render_raster(
-	framebuffer, raster, x=48, y=19, scale=2, color_mapper=map_color)
+raster = bitsquiggles.pixels(0x12345678, bitsquiggles.BLACK_AND_WHITE)
+bitsquiggles.render_raster(
+    framebuffer, raster, x=48, y=19, scale=2, color_mapper=map_color)
 ```
 
 `color_mapper` adapts the canonical `#rrggbb` colors to the target's native
@@ -132,16 +136,16 @@ naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
 
 ### 5.1 LVGL renderer
 
-The optional `bitsquiggles_renderer_lvgl.py` module supports LVGL targets
-without adding an LVGL dependency to the core. Its rounded canvas presentation
-uses the core's canonical `smooth_blobs()` via `render_smooth()`:
+The optional `bitsquiggles_renderer_lvgl.py` module re-exports the core API and
+supports LVGL targets without adding an LVGL dependency to the core. Its
+rounded canvas presentation uses the core's canonical `smooth_blobs()` via
+`render_smooth()`:
 
 ```python
-import bitsquiggle32
-import bitsquiggles_renderer_lvgl as lvgl_renderer
+import bitsquiggles_renderer_lvgl as bitsquiggles
 
-visual = bitsquiggle32.spec(0x12345678, bitsquiggle32.HIGH_CONTRAST)
-lvgl_renderer.render_smooth(parent, visual, scale=4)
+visual = bitsquiggles.spec(0x12345678, bitsquiggles.HIGH_CONTRAST)
+bitsquiggles.render_smooth(parent, visual, scale=4)
 ```
 
 Call `clear_cache()` after deleting renderer parents.

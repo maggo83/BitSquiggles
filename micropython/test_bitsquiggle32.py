@@ -58,6 +58,47 @@ def test_public_surface():
     check(set(bitsquiggle32.__all__) == expected, "declared public surface")
 
 
+def test_framebuffer_renderer_flat_core_surface():
+    expected = set(bitsquiggle32.__all__) | {"render_raster"}
+    check(set(bitsquiggle32_renderer_framebuffer.__all__) == expected,
+          "framebuffer renderer declares core and renderer surface")
+    for name in bitsquiggle32.__all__:
+        check(getattr(bitsquiggle32_renderer_framebuffer, name)
+              is getattr(bitsquiggle32, name),
+              "framebuffer renderer re-exports core %s" % name)
+
+
+def test_lvgl_renderer_flat_core_surface_under_cpython():
+    try:
+        import sys
+        import types
+    except ImportError:
+        return
+    implementation = getattr(getattr(sys, "implementation", None), "name", "")
+    if implementation != "cpython":
+        return
+
+    module_name = "bitsquiggles_renderer_lvgl"
+    saved_lvgl = sys.modules.get("lvgl")
+    sys.modules["lvgl"] = types.ModuleType("lvgl")
+    try:
+        renderer = __import__(module_name)
+        expected = set(bitsquiggle32.__all__) | {
+            "render_raster", "render_smooth", "clear_cache",
+        }
+        check(set(renderer.__all__) == expected,
+              "LVGL renderer declares core and renderer surface")
+        for name in bitsquiggle32.__all__:
+            check(getattr(renderer, name) is getattr(bitsquiggle32, name),
+                  "LVGL renderer re-exports core %s" % name)
+    finally:
+        del sys.modules[module_name]
+        if saved_lvgl is None:
+            del sys.modules["lvgl"]
+        else:
+            sys.modules["lvgl"] = saved_lvgl
+
+
 def test_modes_and_canonical_priority():
     seen = {mode: False for mode in bitsquiggle32.MODES}
     saw_fallback = False
@@ -383,6 +424,8 @@ def test_shared_fixture_under_cpython():
 def main():
     test_edges_and_mode_capacities()
     test_public_surface()
+    test_framebuffer_renderer_flat_core_surface()
+    test_lvgl_renderer_flat_core_surface_under_cpython()
     test_modes_and_canonical_priority()
     test_input_bit_avalanche()
     test_sampled_monochrome_injectivity()

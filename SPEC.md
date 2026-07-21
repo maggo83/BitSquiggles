@@ -553,6 +553,14 @@ paints each pixel grid element as an exact whole target pixel or integer-scaled
 square. A renderer is optional and does not change core identity or the exact
 raster contract.
 
+A port may provide a renderer as a flat application façade: it re-exports the
+complete declared public core surface, binding each re-export to the same core
+operation or constant, and adds its renderer-specific operations. The
+application may then use one renderer import for `spec()`, `pixels()`, and
+rendering. This does not change operation ownership, source dependencies, or
+the requirement that `renderRaster()` consumes a canonical pixel grid rather
+than an identity input.
+
 Each port guide owns exact exported names, signatures, container types, input
 validation, ownership, and target-specific helpers.
 

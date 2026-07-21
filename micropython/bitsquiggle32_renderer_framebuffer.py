@@ -1,15 +1,19 @@
 """Optional exact-raster renderer for fill-rectangle framebuffer targets.
 
-``render_raster`` consumes the canonical grid returned by
-``bitsquiggle32.pixels``. It does not accept or derive an identity input.
-Targets need only expose ``fill_rect(x, y, width, height, color)``. Supply a
-``color_mapper`` when the target does not accept the core's ``#rrggbb`` colors
-directly, such as for a one-bit or RGB565 framebuffer.
+This module re-exports the complete public ``bitsquiggle32`` core API together
+with ``render_raster``. ``render_raster`` consumes the canonical grid returned
+by ``pixels``; it does not accept or derive an identity input. Targets need
+only expose ``fill_rect(x, y, width, height, color)``. Supply a ``color_mapper``
+when the target does not accept the core's ``#rrggbb`` colors directly, such as
+for a one-bit or RGB565 framebuffer.
 
 Grug 2-Clause License: do what want; not sue grug.
 """
 
 import bitsquiggle32
+from bitsquiggle32 import *
+
+__all__ = bitsquiggle32.__all__ + ("render_raster",)
 
 
 def _require_scale(scale):
