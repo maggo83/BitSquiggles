@@ -10,7 +10,7 @@ master-key fingerprint shown by a hardware wallet with the fingerprint shown
 by its companion application.
 
 The project provides dependency-free reference implementations for Java 17,
-MicroPython-compatible Python, JavaScript, and C99. The algorithm and
+MicroPython-compatible Python, JavaScript, C99, and Dart. The algorithm and
 conformance requirements are defined in [SPEC.md](SPEC.md); this README
 deliberately stays at the project and design-rationale level.
 
@@ -180,8 +180,8 @@ BitSquiggles is **experimental and unreleased**.
 
 Current state:
 
-- Java 17, MicroPython-compatible Python, JavaScript, and C99 implementations
-  are present;
+- Java 17, MicroPython-compatible Python, JavaScript, C99, and Dart
+  implementations are present;
 - each implementation includes a dependency-free test suite;
 - the implementations share documented conformance vectors;
 - uniqueness of the canonical connection mask is supported by a structural
@@ -190,6 +190,7 @@ Current state:
 - optional Swing/Java2D and JavaFX desktop renderers are available;
 - the Python port includes an optional PyQt6 exact-raster and smooth renderer;
 - the MicroPython port includes optional LVGL exact-raster and smooth renderers;
+- the Dart port includes an optional Flutter exact-raster and smooth renderer;
 - no independent security, cryptographic, accessibility, or usability review
   has been completed;
 - no controlled user study has established how reliably people notice
@@ -243,6 +244,7 @@ conformance testing, package/release notes, and limitations/compatibility.
 | Python | CPython and MicroPython | [Python and MicroPython guide](micropython/README.md) |
 | JavaScript | Browser, Node, and TypeScript consumers | [JavaScript and TypeScript guide](web/README.md) |
 | C99 | Native and embedded C99 consumers | [C99 guide](c/README.md) |
+| Dart | Dart and Flutter applications | [Dart and Flutter guide](dart/README.md) |
 
 The canonical identity and rendering requirements are defined once in the
 [specification](SPEC.md).
@@ -277,6 +279,11 @@ c/
   bitsquiggle32.c           C99 core implementation
   test_bitsquiggle32.c      C99 conformance and property tests
   README.md                 C99 integration guide
+dart/
+  bitsquiggle32.dart        Dependency-free Dart core
+  bitsquiggles_renderer_flutter.dart Optional Flutter exact-raster and smooth renderer
+  test_bitsquiggle32.dart   Dart conformance and shared-fixture tests
+  README.md                 Dart and Flutter integration guide
 micropython/
   bitsquiggle32.py         MicroPython-compatible implementation
   bitsquiggles_renderer_pyqt6.py Optional PyQt6 exact-raster and smooth renderers

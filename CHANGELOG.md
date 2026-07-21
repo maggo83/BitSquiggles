@@ -10,6 +10,8 @@ rules are defined in [RELEASING.md](RELEASING.md).
 - Added optional MicroPython LVGL exact-raster and smooth renderers.
 - Added an optional PyQt6 exact-raster and smooth renderer.
 - Added an optional JavaFX exact-raster and smooth renderer.
+- Added a dependency-free Dart core and optional Flutter exact-raster and
+  smooth renderer with shared-fixture conformance coverage.
 
 ## 0.1.0 — planned initial release
 
