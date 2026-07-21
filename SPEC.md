@@ -3,25 +3,17 @@
 ← Back to the [BitSquiggles project overview](README.md), including project
 status, safety boundaries, implementation guides, and license.
 
-This document is the technical source of truth for BitSquiggle32. It is organized
-in two levels:
+**Normative.** This index and the linked chapters together are the technical
+source of truth for BitSquiggle32. Project motivation, audience, history, and
+design trade-offs belong in [README.md](README.md). Target-specific names,
+installation, integration, and test commands belong in the port guides.
 
-- **Part I** defines the externally observable contract and the coarse
-  processing model.
-- **Part II** defines the exact data layout, algorithms, rendering, APIs, and
-  conformance requirements needed for an interoperable implementation.
-
-Project motivation, audience, history, and design trade-offs are intentionally
-kept in [README.md](README.md) rather than repeated here.
-
-## Part I — System-level specification
-
-### 1. Scope and contract
+## Contract at a glance
 
 BitSquiggle32 maps one unsigned 32-bit integer to a deterministic visual
-specification. The identity-bearing output is a binary mask over the canonical
-connections of a fixed cell grid. An exact binary pixel rendering preserves
-that mask without loss.
+specification. Its identity-bearing output is a 58-bit canonical connection
+mask over a fixed grid. The exact 16×22 binary raster preserves that mask
+without loss.
 
 For conforming implementations:
 
@@ -30,580 +22,72 @@ equal inputs   => equal connection masks and exact rasters
 unequal inputs => unequal connection masks and exact rasters
 ```
 
-The guarantee applies to the abstract connection mask and the exact binary
-raster. It does not assert that every pair will be easy for a person to
-distinguish after arbitrary scaling, smoothing, display degradation, or brief
-observation.
+This is a geometry and exact-raster guarantee. It does not guarantee that
+people can distinguish every pair after arbitrary scaling, smoothing, display
+degradation, or brief observation. The caller supplies the uint32 value;
+BitSquiggle32 does not derive Bitcoin fingerprints or define a byte order.
 
-The caller supplies the 32-bit integer. BitSquiggle32 does not define how a Bitcoin
-fingerprint or any other protocol value is derived. Hexadecimal notation is
-most-significant-digit first; `89abcdef` denotes the integer `0x89abcdef`.
-The encoder consumes an integer and otherwise defines no byte order.
+## Normative chapters
 
-### 2. Observable outputs
+Read the chapters in their listed dependency order. Each chapter is the sole
+normative owner of the detailed rules in its subject.
 
-An abstract visual specification contains:
+| Chapter | Purpose | Read when |
+| --- | --- | --- |
+| [Overview](spec/01-overview.md) | Observable contract and processing model | Starting an implementation or evaluating the guarantee |
+| [Encoding](spec/02-encoding.md) | Dimensions, mixer, templates, assignment, canonicalization, and uniqueness proof | Implementing the uint32-to-mask transformation |
+| [Presentation](spec/03-presentation.md) | Active cells, styles, color derivation, and sRGB conversion | Implementing non-binary presentation |
+| [Exact raster](spec/04-exact-raster.md) | The lossless 16×22 binary output | Drawing to monochrome or pixel-grid targets |
+| [Smooth output](spec/05-smooth-output.md) | Smooth-rendering constraints and canonical blobs | Adding an antialiased renderer |
+| [API contract](spec/06-api.md) | Required core operations and renderer façade | Designing a core or renderer public surface |
+| [Conformance](spec/07-conformance.md) | Required checks, vector, and generated-output ownership | Verifying or releasing a port |
 
-- the original and mixed 32-bit values;
-- a 58-bit canonical connection mask;
-- the active state of each cell, derived from the mask;
-- foreground and background colors;
-- the requested rendering style;
-- preferred-mode, actual-mode, fallback, luminance, and polarity metadata.
-
-The exact renderer contains:
-
-- a 16×22 binary foreground/background raster;
-- the same foreground and background colors;
-- the requested style.
-
-The mode metadata is diagnostic. It is not rendered into the geometry and is
-not required to decode or compare the identity-bearing mask.
-
-### 3. Coarse processing model
-
-A conforming encoder performs these conceptual stages:
-
-1. **Normalize the input.** Interpret it as an unsigned 32-bit integer.
-2. **Diffuse it.** Apply a bijective 32-bit mixer so nearby inputs normally
-   affect many output features without creating collisions.
-3. **Construct a candidate.** Use mixed bits to choose a copy family and fill
-   its independent connection classes.
-4. **Canonicalize overlaps.** Reject a non-default candidate that also belongs
-   to an earlier family and encode the complete mixed value in the default
-   family instead.
-5. **Derive presentation.** Mark cells incident to selected connections and
-   derive optional color cues. Geometry is identical in every style.
-6. **Render if requested.** Place cells, bridges, and closed junctions in the
-   exact binary raster.
-
-The default family has capacity for all 32 mixed bits. The two-bit selector
-leaves a 30-bit payload. Non-default families preserve that payload directly
-when they have sufficient capacity. The 29-class half-turn family accepts only
-the half of its payloads that fit and sends the others to the full-capacity
-fallback. Canonical priority makes accepted family ranges disjoint.
-
-## Part II — Detailed implementation specification
-
-### 4. Fixed dimensions, values, and ordering
-
-All input and mixer arithmetic is modulo $2^{32}$.
-
-| Item | Required value |
-| --- | ---: |
-| Grid rows | 7 |
-| Grid columns | 5 |
-| Horizontal edges | 28 |
-| Vertical edges | 30 |
-| Total edges | 58 |
-| Exact raster width | 16 |
-| Exact raster height | 22 |
-
-Rows are numbered `0…6` and columns `0…4`. A canonical edge is the tuple:
-
-```text
-(startRow, startColumn, endRow, endColumn)
+```mermaid
+graph TD
+  I[SPEC.md: entry point] --> O[Overview]
+  O --> E[Encoding]
+  E --> P[Presentation]
+  E --> R[Exact raster]
+  E --> S[Smooth output]
+  E --> A[API contract]
+  E --> C[Conformance]
+  R --> C
+  S --> C
+  A --> C
+  A --> G[Port integration guides]
+  C --> F[fixtures/v1.json]
 ```
 
-Only orthogonal nearest neighbours are valid:
+## Task-oriented reading paths
 
-```text
-(row, column, row,     column + 1)  horizontal
-(row, column, row + 1, column    )  vertical
-```
-
-Edges are ordered lexicographically by the tuple. Equivalently, iterate cells
-in row-major order and emit the right edge before the down edge whenever that
-edge exists. Connection arrays and bit strings use this order.
-
-A cell is active if and only if at least one selected edge is incident to it.
-Cells do not carry independent data bits.
-
-### 5. Bijective mixer
-
-Given `input`, calculate:
-
-```text
-mixed = input + 0x9e3779b9
-mixed = (mixed XOR (mixed >>> 16)) × 0x85ebca6b
-mixed = (mixed XOR (mixed >>> 13)) × 0xc2b2ae35
-mixed =  mixed XOR (mixed >>> 16)
-```
-
-`>>>` is a logical right shift. Mask intermediate results to 32 bits where the
-implementation language does not overflow naturally.
-
-Both multipliers are odd, addition is reversible, and each XOR-shift is
-invertible. The complete mixer is therefore a permutation of the 32-bit
-domain.
-
-### 6. Connection classes and copy templates
-
-Each template labels the 7×5 physical cells. An unprimed label identifies a
-source cell; a primed label is a copy of that source.
-
-For every physical edge:
-
-1. remove primes from both endpoint labels;
-2. locate the unprimed source coordinate for each endpoint;
-3. sort the two source coordinates lexicographically;
-4. use the coordinate pair as the connection-class key.
-
-Sort connection classes by that key. All physical edges with one key receive
-the same free connection bit.
-
-#### 6.1 Left/right (`A|`)
-
-```text
-A B C B' A'
-D E F E' D'
-G H I H' G'
-J K L K' J'
-M N O N' M'
-P Q R Q' P'
-S T U T' S'
-```
-
-Free connection classes: **32**.
-
-#### 6.2 Top/bottom (`A-`)
-
-```text
-A  B  C  D  E
-F  G  H  I  J
-K  L  M  N  O
-P  Q  R  S  T
-K' L' M' N' O'
-F' G' H' I' J'
-A' B' C' D' E'
-```
-
-Free connection classes: **31**.
-
-#### 6.3 Half-turn (`A+`)
-
-```text
-A  B  C  D  E
-F  G  H  I  J
-K  L  M  N  O
-P  Q  R  Q' P'
-O' N' M' L' K'
-J' I' H' G' F'
-E' D' C' B' A'
-```
-
-Free connection classes: **29**.
-
-#### 6.4 Slash copy (`A/`)
-
-```text
-A  B  C  D  E
-F  G  H  I  J
-K  L  M  N  I'
-O  P  Q  M' H'
-R  S  P' L' G'
-T  R' O' K' F'
-E' D' C' B' A'
-```
-
-Free connection classes: **33**. The final row extends the copied diagonal
-sequence and mirrors the top row in reverse. This remains a copy template, not
-a geometric reflection of the non-square rectangle.
-
-### 7. Preferred modes and class-bit assignment
-
-Bits `31…30` of `mixed` select one of four preferred modes:
-
-| Index | Mode | Free classes |
-| ---: | --- | ---: |
-| 0 | Left/right (`A\|`) | 32 |
-| 1 | Top/bottom (`A-`) | 31 |
-| 2 | Half-turn (`A+`) | 29 |
-| 3 | Slash copy (`A/`) | 33 |
-
-Bits `29…0` are the 30-bit payload. Assign them most significant first to the
-first 30 sorted connection classes. If a template has further classes, wrap
-around and reuse payload bits from the beginning:
-
-```text
-classBit[i] = payloadBit[29 - (i modulo 30)]
-```
-
-Thus top/bottom class 30 repeats class 0. Slash-copy classes 30…32 repeat
-classes 0…2. This extends visible relationships between the template's upper
-and lower regions without deriving any class value from a secondary
-pseudo-random source.
-
-The half-turn family has only 29 classes and cannot injectively represent all
-$2^{30}$ payloads. If payload bit 0 is zero, assign payload bits `29…1` most
-significant first to its 29 classes. If payload bit 0 is one, do not accept the
-candidate: encode the complete mixed value in the default family and set
-`fallback` to true. The omitted bit is therefore represented by the choice
-between an eligible half-turn candidate and fallback rather than being lost.
-
-Mode 0 is different: assign all 32 bits of `mixed`, most significant first,
-directly to the 32 left/right classes. This is a bijection onto the complete
-default family and is also the fallback encoding.
-
-### 8. Family membership, canonical priority, and fallback
-
-Mode families overlap. A family label cannot disambiguate them because it is
-not part of the visible geometry. Apply this priority rule to every candidate
-with preferred mode `i > 0`:
-
-1. expand its classes into the canonical 58-edge mask;
-2. test that mask against every complete family with index less than `i`;
-3. accept it only when no earlier family matches;
-4. otherwise encode the complete `mixed` value using mode 0 and set `fallback`
-   to true.
-
-An accepted candidate has `actualMode = preferredMode` and `fallback = false`.
-A rejected candidate has `actualMode = A|` and `fallback = true`. Preferred
-mode 0 directly uses `A|` and is not considered fallback.
-
-Capacity fallback from section 7 is applied in addition to this overlap rule.
-
-#### 8.1 Exact membership test
-
-For a mode, let:
-
-- `class(e)` identify the connection class of physical edge `e`;
-
-Expansion is:
-
-```text
-edge[e] = classBit[class(e)]
-```
-
-The mask belongs to that complete family if and only if all occurrences in
-each connection class are equal. One representative occurrence can be compared
-with all remaining occurrences. Singleton classes impose no constraint. The
-test is exact and linear in the 58 physical edges.
-
-It is necessary to test all earlier families, not only an adjacent or
-higher-index family: the earliest family owns every overlap in which it
-participates.
-
-#### 8.2 Uniqueness proof
-
-Let `M` be the bijective mixer and `Fi` the complete mask family for mode `i`.
-
-1. Mode-0 and fallback outputs encode all 32 mixed bits injectively in `F0`.
-2. Every accepted non-default output is explicitly outside `F0`, so it cannot
-   equal a mode-0 or fallback output.
-3. Within top/bottom or slash copy, different inputs selecting that mode have
-   different 30-bit payloads, all of which are present in the first 30 classes.
-4. An accepted half-turn output has payload bit 0 equal to zero. Its remaining
-   29 payload bits are present in its 29 classes; different accepted half-turn
-   inputs therefore produce different masks. Half-turn inputs with payload bit
-   0 equal to one use the injective default fallback.
-5. For accepted modes `i < j`, every mode-`i` output belongs to `Fi`, while
-   mode `j` rejects every candidate belonging to `Fi`. Their accepted outputs
-   cannot coincide.
-
-Because `M` is bijective, these cases establish:
-
-```text
-input1 != input2  =>  edgeMask1 != edgeMask2
-```
-
-The exact raster is also injective because section 10 assigns dedicated bridge
-pixels from which all 58 edge bits can be recovered. Color and metadata are not
-used in either argument.
-
-For symbolic analysis, each complete family may equivalently be represented
-as the affine binary map:
-
-```text
-edgeMask = Ai × classBits XOR bi
-```
-
-Intersections can then be counted by solving
-`Ai × x XOR Aj × y = bi XOR bj` over `GF(2)`. Runtime encoding does not need
-those counts; concrete membership tests are sufficient.
-
-### 9. Cell and color derivation
-
-After the final connection mask is known, mark both endpoints of every selected
-edge as active. All other cells are inactive.
-
-Extract color indices from `mixed`:
-
-```text
-hueIndex       = bits 15…12
-chromaIndex    = bits 11…8
-luminanceIndex = bits 1…0
-```
-
-Calculate:
-
-```text
-hue    = hueIndex × (360 / 16)
-chroma = 0.05 + chromaIndex × ((0.25 - 0.05) / 15)
-baseL  = 0.50 + luminanceIndex × ((0.70 - 0.50) / 3)
-```
-
-Derive ordered OKLCH components by style:
-
-| Style | Foreground L | Background L | Foreground C | Background C |
-| --- | --- | --- | --- | --- |
-| Standard | `baseL` | `foregroundL - 0.50` | `chroma` | `chroma` |
-| High contrast | `baseL + 0.30` | `foregroundL - 0.80` | `chroma + 0.10` | `chroma + 0.10` |
-| Monochrome | `baseL + 0.30` | `foregroundL - 0.80` | `0` | `0` |
-| Black and White | `1` | `0` | `0` | `0` |
-
-Clamp both lightness values to `[0,1]`. Foreground hue is `hue`; background hue
-is `(hue + 180) modulo 360`.
-
-Calculate the XOR parity of all bits in the original, unmixed input. If the
-parity is odd, swap the foreground and background lightness values. Do not swap
-hue or chroma. The returned `swapped` field reports this operation.
-
-#### 9.1 OKLCH to sRGB
-
-For `(L,C,h)`, with `h` in degrees:
-
-```text
-a  = C × cos(h × pi / 180)
-b  = C × sin(h × pi / 180)
-l_ = L + 0.3963377774 × a + 0.2158037573 × b
-m_ = L - 0.1055613458 × a - 0.0638541728 × b
-s_ = L - 0.0894841775 × a - 1.2914855480 × b
-
-rLinear =  4.0767416621 × l_^3 - 3.3077115913 × m_^3 + 0.2309699292 × s_^3
-gLinear = -1.2684380046 × l_^3 + 2.6097574011 × m_^3 - 0.3413193965 × s_^3
-bLinear = -0.0041960863 × l_^3 - 0.7034186147 × m_^3 + 1.7076147010 × s_^3
-```
-
-Clamp each linear component to `[0,1]`, then encode it with:
-
-```text
-srgb(v) = 12.92 × v                            when v <= 0.0031308
-          1.055 × v^(1 / 2.4) - 0.055         otherwise
-```
-
-Multiply by 255 and round to the nearest integer, rounding exact half values
-upward. Text colors use lowercase `#rrggbb`.
-
-### 10. Exact binary renderer
-
-The normative raster is 16×22:
-
-```text
-width  = 1 border + 5 × 2 cell pixels + 4 × 1 gaps + 1 border = 16
-height = 1 border + 7 × 2 cell pixels + 6 × 1 gaps + 1 border = 22
-```
-
-Cell `(row,column)` begins at:
-
-```text
-x = 1 + 3 × column
-y = 1 + 3 × row
-```
-
-Rendering rules:
-
-1. initialize every pixel as background;
-2. fill each active cell's 2×2 block with foreground;
-3. for a selected horizontal edge, fill the 1×2 gap between its cells;
-4. for a selected vertical edge, fill the 2×1 gap between its cells;
-5. set the one-pixel junction between four cells only when all four perimeter
-   edges of that cell square are selected;
-6. leave every border pixel as background.
-
-Each physical edge owns bridge pixels not owned by any other edge. Reading one
-of those bridge pixels recovers that edge bit even when connected-component
-membership alone would not reveal it.
-
-### 11. Smooth renderer
-
-Smooth rendering is presentation rather than the binary conformance format,
-but it must preserve selected and unselected connections. The direct procedure
-below is a simple baseline that always works: it draws every active cell,
-selected bridge, and required junction. It is useful for minimal renderers.
-
-The intended normal path is [canonical smooth blobs](#111-canonical-smooth-blobs):
-core preprocessing produces fewer rounded rectangles with the same smooth
-foreground union, and renderers draw those rectangles. Every core provides the
-blob helper; renderers should use it unless the direct baseline is specifically
-needed.
-
-The direct procedure uses the same 16×22 coordinate system at any scale:
-
-1. draw the complete background tile with rounded outer corners;
-2. represent every active 2×2 cell with corner radii equal to half the cell
-   width, giving terminal cells semicircular caps;
-3. overlay rectangular bridges for selected horizontal and vertical edges;
-4. fill a four-cell center junction only when all four perimeter edges are
-   selected;
-5. combine all foreground cells, bridges, and junctions into one geometric
-   union before antialiased rasterization.
-
-The union avoids hairline background seams between overlapping components.
-Smoothing must not close an unselected connection.
-
-#### 11.1 Canonical smooth blobs
-
-Canonical smooth blobs combine fully connected cells into fewer rounded
-rectangles. Their purpose is to reduce foreground polygons submitted by a
-smooth renderer while preserving the selected/unselected connection topology
-and intended smooth union. Canonical output gives every port the same compact
-geometry. Every core exposes this helper. It preserves the identity-bearing
-connection mask, active cells, and exact raster.
-
-Write a blob as $B=[r_0,r_1]×[c_0,c_1]$, with
-$0\,\leq\,r_0\,\leq\,r_1<ROWS$ and
-$0\,\leq\,c_0\,\leq\,c_1<COLUMNS$. It is valid when it has at least one
-internal edge, every cell in $B$ is active, and every internal grid adjacency
-of $B$ is selected.
-
-Let $F=E\cup J$, where $E$ is the selected-edge set and $J$ is the set of
-2×2 cell squares with all four perimeter edges selected (*required junctions*).
-$B$ covers its internal edges and junctions in $J$. Ordered blobs cover $F$;
-they may overlap because coverage is by features, not cells.
-
-For a blob `(r0, c0, r1, c1)`, its unscaled smooth rectangle in the exact
-raster coordinate system is:
-
-```text
-x = 1 + 3 × c0
-y = 1 + 3 × r0
-w = 2 + 3 × (c1 - c0)
-h = 2 + 3 × (r1 - r0)
-```
-
-At scale `s`, multiply `x`, `y`, `w`, and `h` by `s` and use a corner radius
-of `s`, half the physical cell width. Renderers must union blobs geometrically
-or overlap their foreground drawing sufficiently before antialiasing; drawing
-separate edge-to-edge antialiased rectangles can create seams.
-
-#### 11.2 Canonical blob extraction
-
-Extraction favors deterministic, portable geometry with a small bounded working
-set suitable for embedded targets. It greedily enumerates candidates on demand,
-retaining only feature masks, the current best candidate, and the blob output.
-
-1. Derive the required edge set from the selected canonical connections.
-2. Derive required junctions from every 2×2 square in row-major order.
-3. Select the first uncovered feature—edges in canonical order, then junctions
-   in row-major order—and use its endpoint rectangle or 2×2 square as anchor.
-4. Consider each rectangle containing the anchor; reject any rectangle that
-   fails the [section 11.1](#111-canonical-smooth-blobs) blob conditions.
-5. Choose the candidate with this tie-break order:
-
-   1. newly covered required junction count, descending;
-   2. newly covered required edge count, descending;
-   3. cell area, ascending;
-   4. `topRow`, `leftColumn`, `bottomRow`, `rightColumn`, each ascending.
-
-6. Append it, mark its features covered, and repeat.
-
-An uncovered edge has a valid 1×2 or 2×1 candidate; an uncovered junction has
-a valid 2×2 candidate. These cases guarantee progress through the required
-features.
-
-Implementations can short-circuit at a missing internal edge and prune supersets
-retaining that edge when the tie-break winner remains unchanged. The fixed grid
-caps output at 82 blobs: 58 edges plus 24 junctions.
-
-### 12. Core API contract
-
-Every core exposes these public operations using its language's conventional
-naming, arguments, return values, and error reporting.
-
-#### 12.1 Application-facing operations
-
-| Operation | Result |
+| Task | Minimum reading path |
 | --- | --- |
-| `spec(input[, style])` | canonical visual specification |
-| `pixels(input[, style])` | exact pixel grid and its colors |
-| `smoothBlobs(connections)` | ordered canonical smooth blobs |
+| Understand the guarantee | This index → [overview](spec/01-overview.md) → [encoding](spec/02-encoding.md) |
+| Implement a conforming core | Overview → encoding → presentation → [API](spec/06-api.md) → [conformance](spec/07-conformance.md) |
+| Add a raster renderer | Overview → encoding through `pixels()` → [exact raster](spec/04-exact-raster.md) → [API](spec/06-api.md) → [conformance](spec/07-conformance.md) |
+| Add a smooth renderer | Overview → encoding → [smooth output](spec/05-smooth-output.md) → [API](spec/06-api.md) → [conformance](spec/07-conformance.md) |
+| Verify a port | Overview → [API](spec/06-api.md) → [conformance](spec/07-conformance.md) → target port guide |
+| Choose or install a port | [Project overview](README.md) → target port guide → [API](spec/06-api.md) |
 
-`spec()` is pure: it derives the mixed input, connections, active cells, colors,
-style, preferred and actual modes, fallback state, luminance index, and polarity
-metadata. `pixels()` is also pure and derives the exact 16×22 binary raster and
-its colors from the same input and style. Neither operation draws anything.
-`smoothBlobs()` is also pure; it consumes a canonical connection mask and
-returns the presentation-only ordered blob decomposition from
-[section 11.2](#112-canonical-blob-extraction).
+## Conformance language and change policy
 
-#### 12.2 Public conformance helpers
+The words **must**, **must not**, **should**, and **may** in the normative
+chapters indicate requirement strength. A conforming implementation satisfies
+all **must** and **must not** statements.
 
-| Operation | Result |
-| --- | --- |
-| `mix32(input)` | bijective 32-bit mixed value |
-| `edges()` | 58 canonical edges in section 4 order |
-| `freeConnectionCount(mode)` | independent connection-class count |
-| `matchesMode(connections, mode)` | complete-family membership |
+The versioned cross-port fixture is [fixtures/v1.json](fixtures/v1.json).
+Generated gallery examples are in [docs/examples/](docs/examples/). Their Java
+generators and validation commands are owned by
+[the conformance chapter](spec/07-conformance.md) and the
+[Java guide](java/README.md#6-test-conformance).
 
-Every core also exposes `ROWS`, `COLUMNS`, `EDGE_COUNT`, `PIXEL_WIDTH`, and
-`PIXEL_HEIGHT`; the four styles (Standard, High contrast, Monochrome, and
-Black and white); and mode labels `A|`, `A-`, `A+`, and `A/`.
-These helpers support diagnostics and conformance; applications normally use
-the operations in section 12.1.
+Any behavior, constants, format, public API, or fixture change requires an
+explicit compatibility review, synchronized maintained-port conformance, and
+release treatment under [RELEASING.md](RELEASING.md). Keep implementation
+changes and the affected normative chapters synchronized.
 
-Optional target renderers append a framework identifier to the
-`BitSquiggle32Renderer` root, using the target language's normal naming style.
-Examples are Java `BitSquiggle32RendererSwing`, JavaScript
-`bitsquiggle32-renderer-canvas`, Python `bitsquiggle32_renderer_pillow`, and
-MicroPython `bitsquiggle32_renderer_lvgl`. Each renderer exposes
-`renderSmooth()` for a canonical visual specification and `renderRaster()` for
-a pixel grid. The former may antialias only according to section 11; the latter
-paints each pixel grid element as an exact whole target pixel or integer-scaled
-square. A renderer is optional and does not change core identity or the exact
-raster contract.
+## Related
 
-Every renderer **must** expose the complete declared public core API through
-its own public entry point, using the target language's conventional façade or
-re-export mechanism, and add its renderer-specific operations. An integrator
-can therefore use the selected renderer as the single application entry point
-for `spec()`, `pixels()`, and rendering. Re-exported operations and constants
-must retain the core's behavior and values. This does not change operation
-ownership, source dependencies, or the requirement that `renderRaster()`
-consumes a canonical pixel grid rather than an identity input.
-
-Each port guide owns exact exported names, signatures, container types, input
-validation, ownership, and target-specific helpers.
-
-### 13. Conformance requirements
-
-A conforming implementation must satisfy all of the following:
-
-- produce exactly 58 canonical edges in the order from section 4;
-- produce free-class counts `32, 31, 29, 33` in mode order;
-- use mixed bits `31…30` as the selector and bits `29…0` as payload;
-- implement cyclic payload reuse and half-turn capacity fallback exactly;
-- derive no connection-class values from a secondary pseudo-random source;
-- accept a non-default mask only when it belongs to no earlier family;
-- encode all fallback masks in the complete default family;
-- preserve one connection mask across all rendering styles;
-- derive cells only from incident selected edges;
-- produce the exact 16×22 raster with a background border;
-- permit recovery of every connection from its bridge pixels;
-- match the conformance vector in section 13.1.
-
-Every implementation must produce the ordered smooth-blob decomposition defined
-in [section 11.2](#112-canonical-blob-extraction) and preserve the exact-raster
-and connection-mask results.
-
-Implementations should additionally test one-bit diffusion, observe every
-preferred mode and fallback in representative samples, compare large sampled
-sets for duplicate monochrome masks, and test invalid public inputs. Sampling
-is implementation evidence, not the proof of complete-domain uniqueness.
-
-#### 13.1 Conformance vector
-
-For input `0x89abcdef` in Standard style:
-
-```text
-mixed         = 0x47ac5876
-preferredMode = A-
-actualMode    = A-
-fallback      = false
-luminance     = 2
-background    = #140040
-foreground    = #8d9200
-connections   = 0001111010110001011000011101010010101100001010011011010011
-```
-
-The connection string uses the canonical 58-edge order from section 4.
+- Project and port selection: [README.md](README.md)
+- Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Release policy: [RELEASING.md](RELEASING.md)

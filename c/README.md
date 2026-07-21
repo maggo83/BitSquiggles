@@ -76,38 +76,24 @@ non-binary connection array. No allocation is performed.
 `bitsquiggle32_pixels()` fills a caller-owned `Bitsquiggle32PixelGrid`. It is
 the normative $16\times22$ binary raster: render its row-major `pixels` values
 as whole target pixels or integer-scaled squares; `0` is background and `1` is
-foreground. See the complete [exact-raster rules](../SPEC.md#10-exact-binary-renderer).
+foreground. See the complete [exact-raster rules](../spec/04-exact-raster.md).
 
 ```c
 Bitsquiggle32PixelGrid raster;
 bitsquiggle32_pixels(value, BITSQUIGGLE32_STANDARD, &raster);
 ```
 
-### 4.1 Black-and-white display style
-
-`BITSQUIGGLE32_BLACK_AND_WHITE` is the shared style for displays with only two
-physical states. It uses fixed base colors: foreground lightness `L = 1`,
-background lightness `L = 0`, and zero chroma for both. The parity-driven
-foreground/background lightness swap is then applied, so its colors are always
-`#ffffff` and `#000000`. The raster geometry is unchanged, so existing exact
-and smooth renderers can consume it without modification.
-
-Use the complete bordered tile: the background border makes the swapped
-polarity visible. The pure black-and-white bitmap remains unique; color and
-intermediate luminance only provide optional comparison cues. This style is
-defined by the shared specification and included in the cross-port fixture.
-
 ## 5. Optional smooth rendering
 
 Smooth rendering is presentation only: it must preserve selected and
 unselected connections without changing the exact-raster identity. Follow the
-[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
-naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
+[smooth-output constraints](../spec/05-smooth-output.md) and the renderer
+naming convention in the [core API contract](../spec/06-api.md).
 
 This port bundles no renderer. Add a framework-specific adapter only when the
 target requires one. Use `bitsquiggle32_smooth_blobs()` as the normal path:
 draw each returned rectangle with the canonical geometry from the
-[smooth-blob specification](../SPEC.md#111-canonical-smooth-blobs).
+[smooth-blob specification](../spec/05-smooth-output.md#canonical-smooth-blobs).
 
 ## 6. Test conformance
 

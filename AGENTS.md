@@ -1,7 +1,7 @@
 # BitSquiggles agent guide
 
-- [SPEC.md](SPEC.md) is the normative source for algorithm behavior, common API
-  names, exact raster rules, and conformance requirements.
+- [SPEC.md](SPEC.md) indexes the normative chapters for algorithm behavior,
+  common API names, exact raster rules, and conformance requirements.
 - [README.md](README.md) owns project purpose, safety boundaries, status, and
   the port-guide index.
 - Port README files own installation and target-specific integration details.

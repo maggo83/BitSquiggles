@@ -5,13 +5,15 @@ Thanks for helping improve BitSquiggles.
 ## Start here
 
 - Read [the project overview](README.md) for purpose, status, and safety limits.
-- Treat [the specification](SPEC.md) as the normative algorithm and API contract.
+- Treat [the specification](SPEC.md) and its linked chapters as the normative
+  algorithm and API contract.
 - Use the [reference implementation guides](README.md#reference-implementation-guides)
   for port-specific setup and commands.
 
 ## Change rules
 
-1. Propose behavior, format, or API changes in `SPEC.md` first.
+1. Propose behavior, format, or API changes in the owning normative chapter
+  linked from [SPEC.md](SPEC.md) first.
 2. Keep every maintained core implementation conformant with `fixtures/v1.json`.
 3. Keep the core dependency-free; renderers and demos remain optional layers.
 4. Regenerate tracked gallery and fixture outputs when the Java generators require it.
@@ -24,7 +26,7 @@ Thanks for helping improve BitSquiggles.
 Run the checks specified by the port guides and the repository verification
 workflow. At minimum, verify the Java tests and generated artifacts, the Python
 fixture/property tests, and the JavaScript core/playground tests.
-For an LVGL renderer change, also verify exact and smooth output in the target
+For a hw renderer change, also verify exact and smooth output in the target
 simulator and on representative hardware. For a desktop renderer change,
 compile the optional renderer module against its target UI toolkit and inspect
 both exact and smooth output.

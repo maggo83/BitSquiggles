@@ -14,8 +14,9 @@ artifacts use that same version.
   every maintained port in the same release.
 - A renderer/demo-only change may be released at the shared version without
   changing the core algorithm, but it must state that scope in the changelog.
-- A change to the normative behavior in [SPEC.md](SPEC.md), the common core API,
-  or fixture schema requires an explicit compatibility review before release.
+- A change to the normative behavior in [SPEC.md](SPEC.md) or its linked
+  chapters, the common core API, or fixture schema requires an explicit
+  compatibility review before release.
 - Until 1.0, breaking changes are permitted only when documented in the
   changelog and released consistently across all maintained ports.
 
@@ -24,8 +25,9 @@ published yet.
 
 ## Release checklist
 
-1. Confirm that [SPEC.md](SPEC.md), the port guides, package metadata, and
-   `CHANGELOG.md` agree on the release version and compatibility notes.
+1. Confirm that [SPEC.md](SPEC.md), its affected normative chapters, the port
+  guides, package metadata, and `CHANGELOG.md` agree on the release version
+  and compatibility notes.
 2. Run the repository verification workflow checks locally or in CI: Java core,
    renderer/demo tests, generated gallery, generated fixture, CPython/MicroPython
    harness, JavaScript core test, playground smoke test, and package dry run.

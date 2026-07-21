@@ -244,14 +244,14 @@ conformance testing, package/release notes, and limitations/compatibility.
 | C99 | Native and embedded C99 consumers | [C99 guide](c/README.md) |
 
 The canonical identity and rendering requirements are defined once in the
-[specification](SPEC.md#1-scope-and-contract). Smooth-renderer integration is
-covered by each port guide.
+[specification](SPEC.md).
 
 ## Repository guide
 
 ```text
 README.md                  project purpose, audience, rationale, and status
-SPEC.md                    normative behavior and implementation details
+SPEC.md                    normative specification index and reading paths
+spec/                      focused normative algorithm, output, API, and validation chapters
 CONTRIBUTING.md            contribution workflow and validation expectations
 AGENTS.md                  concise guide for coding agents
 RELEASING.md               shared versioning and release procedure
@@ -292,8 +292,9 @@ web/README.md               JavaScript and TypeScript integration guide
 .github/workflows/         Verifies generated files, runs tests, and deploys Pages
 ```
 
-When behavior, constants, or formats change, update [SPEC.md](SPEC.md) and the
-conformance tests together. When rendering changes, regenerate
+When behavior, constants, or formats change, update the affected
+[normative specification chapter](SPEC.md) and the conformance tests together.
+When rendering changes, regenerate
 `docs/examples/` and `fixtures/v1.json` with their Java generators as
 described above. Keep project motivation, safety boundaries, status, and
 trade-offs here; keep normative behavior in the specification; and keep

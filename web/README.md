@@ -43,7 +43,7 @@ console.log(formatHex(visual.mixed), visual.actualMode);
 Both `spec()` and `pixels()` accept the same signed 32-bit bit pattern and
 optional style. The API return values, styles, constants, and hexadecimal
 handling are documented by this guide; shared semantics are in the
-[core API contract](../SPEC.md#12-core-api-contract).
+[core API contract](../spec/06-api.md).
 
 `STYLES` contains `standard`, `high-contrast`, `monochrome`, and
 `black-and-white`. Black and white produces only `#000000` and `#ffffff` after
@@ -75,21 +75,14 @@ objects. TypeScript declarations include `SmoothBlob`.
 The `pixels()` result is the normative $16\times22$ binary raster. Render its
 row-major values as whole target pixels or nearest-neighbor integer-scaled
 squares; `0` is background and `1` is foreground. See the complete
-[exact-raster rules](../SPEC.md#10-exact-binary-renderer).
+[exact-raster rules](../spec/04-exact-raster.md).
 
 ### 4.1 Black-and-white display style
 
-`black-and-white` is the shared style for displays with only two physical
-states. It uses fixed base colors: foreground lightness `L = 1`, background
-lightness `L = 0`, and zero chroma for both. The parity-driven
-foreground/background lightness swap is then applied, so its colors are always
-`#ffffff` and `#000000`. The raster geometry is unchanged, so existing exact
-and smooth renderers can consume it without modification.
-
-Use the complete bordered tile: the background border makes the swapped
-polarity visible. The pure black-and-white bitmap remains unique; color and
-intermediate luminance only provide optional comparison cues. This style is
-defined by the shared specification and included in the cross-port fixture.
+`black-and-white` is the shared two-state display style. Its lightness,
+polarity, and color rules are defined in [presentation](../spec/03-presentation.md);
+its unchanged geometry and required background border are defined by the
+[exact raster](../spec/04-exact-raster.md).
 
 ### 4.2 Canvas 2D renderer
 
@@ -104,8 +97,8 @@ renderRaster(rasterCanvas, raster);
 
 Smooth rendering is presentation only: it must preserve selected and
 unselected connections without changing the exact-raster identity. Follow the
-[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
-naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
+[smooth-output constraints](../spec/05-smooth-output.md) and the renderer
+naming convention in the [core API contract](../spec/06-api.md).
 
 ### 5.1 Canvas 2D renderer
 
@@ -133,7 +126,7 @@ npm test
 
 The test suite reads the versioned Java-generated conformance fixture and
 checks every shared vector. The complete conformance requirements are in the
-[specification](../SPEC.md#13-conformance-requirements).
+[conformance](../spec/07-conformance.md).
 
 ## 7. Package / release notes
 
@@ -144,7 +137,7 @@ declarations. Use the core alone when a different graphics toolkit is preferred.
 ## 8. Limitations and compatibility
 
 The core is standard ESM; consumers without ESM support need a target-specific
-integration layer. See the [shared input contract](../SPEC.md#1-scope-and-contract)
+integration layer. See the [shared input contract](../spec/01-overview.md)
 for 32-bit value semantics.
 
 | Surface | Verified target | Notes |

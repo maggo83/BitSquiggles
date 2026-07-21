@@ -47,7 +47,7 @@ System.out.println(raster.foreground().hex());
 
 Both methods also accept an optional `BitSquiggle32.Style`; the one-argument
 overloads use `STANDARD`. The shared output contract and every required core
-operation are defined in the [core API contract](../SPEC.md#12-core-api-contract).
+operation are defined in the [core API contract](../spec/06-api.md).
 Arrays held by the returned records are mutable; treat them as immutable outputs
 or copy them before sharing them.
 
@@ -80,23 +80,9 @@ renderer entry point instead of importing the core class separately.
 The `pixels()` result is the normative $16\times22$ binary raster. Render its
 row-major `pixels()` values as whole target pixels or integer-scaled squares;
 `0` is background and `1` is foreground. See the complete
-[exact-raster rules](../SPEC.md#10-exact-binary-renderer).
+[exact-raster rules](../spec/04-exact-raster.md).
 
-### 4.1 Black-and-white display style
-
-`BLACK_AND_WHITE` is the shared style for displays with only two physical
-states. It uses fixed base colors: foreground lightness `L = 1`, background
-lightness `L = 0`, and zero chroma for both. The parity-driven
-foreground/background lightness swap is then applied, so its colors are always
-`#ffffff` and `#000000`. The raster geometry is unchanged, so existing exact
-and smooth renderers can consume it without modification.
-
-Use the complete bordered tile: the background border makes the swapped
-polarity visible. The pure black-and-white bitmap remains unique; color and
-intermediate luminance only provide optional comparison cues. This style is
-defined by the shared specification and included in the cross-port fixture.
-
-### 4.2 Swing and Java2D renderer
+### 4.1 Swing and Java2D renderer
 
 ```java
 import static bitsquiggles.renderer.swing.BitSquiggle32RendererSwing.*;
@@ -105,7 +91,7 @@ var raster = pixels(bits, BLACK_AND_WHITE);
 renderRaster(graphics, raster, pixelSize);
 ```
 
-### 4.3 JavaFX renderer
+### 4.2 JavaFX renderer
 
 ```java
 import static bitsquiggles.renderer.javafx.BitSquiggle32RendererJavaFX.*;
@@ -118,8 +104,8 @@ renderRaster(graphics, raster, pixelSize);
 
 Smooth rendering is presentation only: it must preserve selected and
 unselected connections without changing the exact-raster identity. Follow the
-[smooth-rendering constraints](../SPEC.md#11-smooth-renderer) and the renderer
-naming convention in the [core API contract](../SPEC.md#12-core-api-contract).
+[smooth-output constraints](../spec/05-smooth-output.md) and the renderer
+naming convention in the [core API contract](../spec/06-api.md).
 The bundled Swing and JavaFX renderers use `extractSmoothBlobs()` to reduce
 foreground primitives while preserving the canonical smooth union.
 
@@ -177,7 +163,7 @@ javac -d out/renderer-javafx \
 
 The last two commands verify generated README SVGs and the shared versioned
 conformance fixture. The complete conformance requirements are in the
-[specification](../SPEC.md#13-conformance-requirements).
+[conformance](../spec/07-conformance.md).
 
 ## 7. Package / release notes
 
@@ -190,7 +176,7 @@ and the JavaFX renderer uses JavaFX Graphics.
 
 This implementation requires Java 17 or later because it uses records and
 modern switch syntax. It accepts every `int` bit pattern as an unsigned 32-bit
-input; see the [shared input contract](../SPEC.md#1-scope-and-contract).
+input; see the [shared input contract](../spec/01-overview.md).
 
 | Surface | Verified target | Notes |
 | --- | --- | --- |
