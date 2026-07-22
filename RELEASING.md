@@ -20,8 +20,10 @@ artifacts use that same version.
 - Until 1.0, breaking changes are permitted only when documented in the
   changelog and released consistently across all maintained ports.
 
-The current development version is `0.1.0`; no package artifact has been
-published yet.
+The current version is `0.1.0-beta.1`, tagged as the first reference point for
+beta testers and integrators. No package registry artifact (PyPI, npm, Maven
+Central) has been published yet; the tagged source and a GitHub Release are
+the only published artifacts so far.
 
 ## Release checklist
 

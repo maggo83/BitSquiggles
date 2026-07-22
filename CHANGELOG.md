@@ -5,17 +5,23 @@ rules are defined in [RELEASING.md](RELEASING.md).
 
 ## Unreleased
 
-- No published release artifacts yet.
-- Added a dependency-free C99 core with shared-fixture conformance coverage.
-- Added optional MicroPython LVGL exact-raster and smooth renderers.
-- Added an optional PyQt6 exact-raster and smooth renderer.
-- Added an optional JavaFX exact-raster and smooth renderer.
-- Added a dependency-free Dart core and optional Flutter exact-raster and
-  smooth renderer with shared-fixture conformance coverage.
+- No changes yet.
 
-## 0.1.0 — planned initial release
+## 0.1.0-beta.1 — 2026-07-22
 
-- Dependency-free Java, Python/MicroPython, and JavaScript/TypeScript cores.
+First tagged reference release: a stable point for beta testers and potential
+collaborators to integrate against. No further core changes are planned
+imminently, but encoding details may still evolve based on integration
+feedback before a stable 1.0.
+
+- Dependency-free Java, Python/MicroPython, JavaScript/TypeScript, C99, and
+  Dart cores, each with shared-fixture conformance coverage.
 - Shared normative specification and versioned cross-port conformance fixture.
-- Optional framework-qualified Swing/Java2D and Canvas renderers.
+- Optional Swing/Java2D, JavaFX, PyQt6, MicroPython LVGL, and Flutter
+  exact-raster and smooth renderers.
 - Static GitHub Pages playground.
+- Proof-of-concept integrations verified in simulators for Sparrow,
+  Bitcoin Safe, Bull Bitcoin, BitBox, ColdCard, and Specter; the Specter
+  integration was additionally verified on physical hardware. See
+  [PoC integration branches](README.md#poc-integration-branches) for the fork
+  and branch references.

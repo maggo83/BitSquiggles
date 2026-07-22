@@ -1,6 +1,6 @@
 {
   "name": "bitsquiggles",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "Dependency-free BitSquiggle32 visual encoding",
   "type": "module",
   "exports": {

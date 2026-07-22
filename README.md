@@ -176,7 +176,12 @@ for the critique and pointers to existing other approaches like LifeHash!
 
 ## Status
 
-BitSquiggles is **experimental and unreleased**.
+BitSquiggles is **experimental**. The project has tagged its first reference
+release, `v0.1.0-beta.1`, so beta testers and potential collaborators have a
+stable, citable point to integrate against. This is a beta: no further core
+changes are planned imminently, but encoding details (for example the
+diagonal `/` copy family) may still evolve based on integration feedback
+before a stable 1.0.
 
 Current state:
 
@@ -191,6 +196,11 @@ Current state:
 - the Python port includes an optional PyQt6 exact-raster and smooth renderer;
 - the MicroPython port includes optional LVGL exact-raster and smooth renderers;
 - the Dart port includes an optional Flutter exact-raster and smooth renderer;
+- proof-of-concept integrations have been verified in simulators for Sparrow,
+  Bitcoin Safe, Bull Bitcoin, BitBox, ColdCard, and Specter, and the Specter
+  integration has additionally been verified on physical hardware; see
+  [PoC integration branches](#poc-integration-branches) for fork and branch
+  references;
 - no independent security, cryptographic, accessibility, or usability review
   has been completed;
 - no controlled user study has established how reliably people notice
@@ -204,6 +214,23 @@ or security guarantee.
 Release versioning and publication requirements are defined in
 [RELEASING.md](RELEASING.md); released changes are recorded in
 [CHANGELOG.md](CHANGELOG.md).
+
+### PoC integration branches
+
+This table is the single source for proof-of-concept integration links,
+referenced from [CHANGELOG.md](CHANGELOG.md). Each branch lives on the
+maintainer's personal fork, is not an upstream pull request, and does not
+indicate upstream project endorsement. Unless noted, a branch was validated in
+the project's own simulator or desktop build, not on physical hardware.
+
+| Project | Official repository | PoC fork and branch | Verification |
+| --- | --- | --- | --- |
+| Sparrow | [sparrowwallet/sparrow](https://github.com/sparrowwallet/sparrow) | [maggo83/sparrow @ feature/bitsquiggles-conformance](https://github.com/maggo83/sparrow/tree/feature/bitsquiggles-conformance) | Simulator/desktop build |
+| Bitcoin Safe | [andreasgriffin/bitcoin-safe](https://github.com/andreasgriffin/bitcoin-safe) | [maggo83/bitcoin-safe @ bitsquiggles-conformance](https://github.com/maggo83/bitcoin-safe/tree/bitsquiggles-conformance) | Desktop build |
+| Bull Bitcoin | [SatoshiPortal/bullbitcoin-mobile](https://github.com/SatoshiPortal/bullbitcoin-mobile) | [maggo83/bullbitcoin-mobile @ bitsquiggles-conformance](https://github.com/maggo83/bullbitcoin-mobile/tree/bitsquiggles-conformance) | Simulator |
+| BitBox02 | [BitBoxSwiss/bitbox02-firmware](https://github.com/BitBoxSwiss/bitbox02-firmware) | [maggo83/bitbox02-firmware @ bitsquiggles-conformance](https://github.com/maggo83/bitbox02-firmware/tree/bitsquiggles-conformance) | Simulator |
+| Coldcard | [Coldcard/firmware](https://github.com/Coldcard/firmware) | [maggo83/firmware @ bit-squiggle-poc](https://github.com/maggo83/firmware/tree/bit-squiggle-poc) | Simulator |
+| Specter | [cryptoadvance/specter-diy](https://github.com/cryptoadvance/specter-diy) | [maggo83/specter-playground @ feature/bitsquiggles-conformance](https://github.com/maggo83/specter-playground/tree/feature/bitsquiggles-conformance) | Simulator and physical hardware |
 
 ## Keeping examples synchronized
 
